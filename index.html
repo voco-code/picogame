@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg">
+    <link rel="preload" as="image" href="https://i.ibb.co/TDKZK4rz/IMG-1949.jpg">
+    <link rel="preload" as="image" href="https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg">
+    <title>Pico Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-radius: 0 !important;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes rainbowText {
+            0% { color: red; } 16% { color: orange; } 33% { color: yellow; } 50% { color: green; } 66% { color: blue; } 83% { color: purple; } 100% { color: red; }
+        }
+
+        .rainbow-bg {
+            background: linear-gradient(270deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 1400% 1400%;
+            animation: rainbow 5s ease infinite;
+        }
+        .rainbow-text {
+            animation: rainbowText 2s infinite;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        .active-screen {
+            display: block;
+        }
+
+        #loading {
+            z-index: 9999;
+        }
+        #loading-text {
+            position: absolute;
+            top: 10%;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+        #progress-bar-container {
+            position: absolute;
+            bottom: 10%;
+            left: 10%;
+            width: 80%;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #000;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #000;
+            transition: width 0.2s;
+        }
+        #progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 5px;
+            color: white;
+            font-size: 20px;
+            mix-blend-mode: difference;
+        }
+        #server-connect {
+            position: absolute;
+            bottom: 20%;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            display: none;
+        }
+
+        #menu {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://i.ibb.co/TDKZK4rz/IMG-1949.jpg') center/cover;
+            background-size: cover;
+        }
+        .top-bar {
+            position: absolute;
+            top: 0; width: 100%; height: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 10px;
+        }
+        .balance-box {
+            background: #ccc;
+            padding: 5px 10px;
+            font-weight: bold;
+            display: flex; gap: 15px;
+            border: 2px solid #000;
+        }
+        .btn-flat {
+            background: #fff;
+            border: 2px solid #000;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .btn-flat:active { transform: scale(0.95); }
+        .btn-yellow { background: #ffcc00; }
+        .btn-green { background: #00aa00; color: white; }
+        .btn-blue { background: #0000ff; color: white; }
+        .btn-red { background: #ff0000; color: white; }
+        .btn-gray { background: #888; color: white; }
+
+        .left-menu {
+            position: absolute;
+            left: 10px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .bottom-right-menu {
+            position: absolute;
+            right: 10px; bottom: 10px;
+            display: flex; gap: 10px; align-items: flex-end;
+        }
+        .play-btn {
+            font-size: 30px; padding: 20px 40px;
+        }
+
+        .center-character {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 60px; text-align: center;
+        }
+
+        /* Центрирование скинов */
+        .skin-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        .skin-wrapper > div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            width: 90%; height: 90%;
+            border: 4px solid #000;
+            padding: 20px;
+            position: relative;
+            overflow-y: auto;
+        }
+        .modal-green { background: #00aa00; }
+        .modal-gray { background: #888; }
+        .modal-blue { background: #0044cc; color: white; height: auto!important; }
+        .modal-purple { background: purple; color: white; }
+
+        .close-btn {
+            position: absolute; top: 10px; left: 10px;
+            width: 40px; height: 40px;
+            font-size: 24px; display: flex; justify-content: center; align-items: center;
+        }
+        .close-right { left: auto; right: 10px; }
+
+        .shop-row {
+            display: flex; gap: 20px; overflow-x: auto; padding-top: 50px;
+            width: 100%; height: 100%;
+        }
+        .shop-item {
+            min-width: 250px; background: #fff; color: #000;
+            border: 3px solid #000; padding: 15px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .pass-levels {
+            display: flex; gap: 10px; overflow-x: auto; padding-top: 60px;
+        }
+        .pass-cube {
+            min-width: 80px; height: 80px;
+            background: #fff; color: #000; border: 2px solid #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-weight: bold; cursor: pointer;
+        }
+        .pass-cube.claimed { background: #444; color: #888; }
+        
+        #game { background: #222; position: relative; overflow: hidden; }
+        .arena {
+            width: 2000px; height: 2000px;
+            background: #333; position: absolute;
+            transform: translate(0, 0);
+            transition: transform 0.1s linear;
+        }
+        .bush {
+            position: absolute; background: #005500;
+            width: 150px; height: 150px; opacity: 0.8; border: 2px solid #003300;
+        }
+        .entity {
+            position: absolute; font-size: 40px; text-align: center;
+            transform: translate(-50%, -50%); z-index: 10;
+        }
+        .hp-bar {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 50px; height: 8px;
+            background: red; border: 1px solid #000;
+        }
+        .hp-fill { height: 100%; background: #00ff00; width: 100%; }
+        .bullet {
+            position: absolute; width: 15px; height: 15px;
+            background: yellow; border: 1px solid #000;
+            transform: translate(-50%, -50%); z-index: 5;
+        }
+        .bullet-bot { background: red; }
+
+        .joystick-zone {
+            position: absolute; bottom: 30px; width: 150px; height: 150px;
+            border-radius: 50% !important; opacity: 0.5; z-index: 20;
+        }
+        #joy-left { left: 30px; background: rgba(0,0,255,0.3); border: 3px solid blue; }
+        #joy-right { right: 30px; background: rgba(255,0,0,0.3); border: 3px solid red; }
+        .joy-knob {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 50px; height: 50px; border-radius: 50% !important;
+        }
+        #joy-left .joy-knob { background: blue; }
+        #joy-right .joy-knob { background: red; }
+        
+        #game-ui { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 30;}
+        #game-top-right { position: absolute; top: 10px; right: 10px; pointer-events:auto;}
+
+        input { padding: 10px; font-size: 16px; border: 2px solid #000; margin-bottom: 10px; width: 100%;}
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="screen active-screen rainbow-bg">
+        <div id="loading-text">Pico</div>
+        <div id="server-connect">Подключение к серверу...</div>
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+            <div id="progress-text">0%</div>
+        </div>
+    </div>
+
+    <div id="menu" class="screen">
+        <div class="top-bar">
+            <div style="display:flex; gap: 10px; align-items: center;">
+                <div id="btn-nick" class="btn-flat btn-blue">Выбрать ник</div>
+                <div style="background: #fff; border: 2px solid #000; padding: 5px;">
+                    <div style="font-size: 10px; font-weight:bold;">1-й сезон <span id="season-timer">-- д. -- ч.</span></div>
+                    <div class="rainbow-text" style="font-size: 12px; font-weight:bold;">МАСШТАБНОЕ ЛЕТО!!!</div>
+                </div>
+                <div id="btn-pass" class="btn-flat btn-gray rainbow-text" style="font-weight:bold;">Pass!!!</div>
+                <div id="btn-secret" class="btn-flat rainbow-bg" style="font-size: 24px; padding: 5px 10px; color:white;">😀</div>
+            </div>
+            <div class="balance-box">
+                <div>Монеты: <span id="ui-coins">0</span></div>
+                <div>Гемы: <span id="ui-gems">0</span></div>
+            </div>
+        </div>
+
+        <div class="center-character" id="menu-character"></div>
+
+        <div class="left-menu">
+            <div class="btn-flat btn-gray" onclick="showModal('modal-shop')">🏬 Магазин</div>
+            <div class="btn-flat btn-gray" onclick="showModal('modal-brawlers')">😎 Бойцы</div>
+            <div class="btn-flat btn-gray" onclick="showModal('modal-daily')">📅 Ежедневные награды</div>
+        </div>
+
+        <div class="bottom-right-menu">
+            <div class="btn-flat btn-gray" id="btn-mode">Режим: Столкновение<br><small></small></div>
+            <div class="btn-flat btn-yellow play-btn" onclick="startGame()">ИГРАТЬ</div>
+        </div>
+    </div>
+
+    <div id="modal-nick" class="modal">
+        <div class="modal-content modal-blue" style="border:none;">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-nick')">Х</div>
+            <h2 style="margin-bottom: 10px; text-align:center;">Выбрать ник</h2>
+            <input type="text" id="nick-input" placeholder="твой ник">
+            <div class="btn-flat btn-yellow" onclick="saveNick()" style="color:#000;">Выбрать</div>
+        </div>
+    </div>
+
+    <div id="modal-brawlers" class="modal">
+        <div class="modal-content modal-green">
+            <div class="close-btn btn-flat btn-gray" onclick="hideModal('modal-brawlers')">Х</div>
+            <h1 style="text-align:center; margin-bottom: 20px;">Бойцы</h1>
+            <div style="display:flex; justify-content:center; gap:30px;">
+                <div class="btn-flat" style="text-align:center;">
+                    <div style="font-size: 50px; line-height: 1;" class="skin-wrapper">
+                        <div>😀</div><div>🩻🩳</div><div>🦵🏻🦵🏻</div>
+                    </div>
+                    <div style="margin-top:10px;" class="btn-flat btn-red" onclick="selectBrawler('mito')">Мито</div>
+                </div>
+                <div class="btn-flat" style="text-align:center;">
+                    <div style="font-size: 50px; line-height: 1;" class="skin-wrapper">
+                        <div>😎</div><div>🩻🩲</div><div>🦵🦵🏽</div>
+                    </div>
+                    <div style="margin-top:10px;" class="btn-flat btn-blue" onclick="selectBrawler('kiko')">Коко</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-shop" class="modal">
+        <div class="modal-content modal-gray">
+            <div class="close-btn btn-flat btn-gray" onclick="hideModal('modal-shop')">Х</div>
+            <h1 style="position:absolute; top:20px; left: 70px; color:white;">Магазин</h1>
+            <div class="shop-row">
+                <div class="shop-item">
+                    <h2>ПОДАРОК ДНЯ!</h2>
+                    <div style="font-size:40px; text-align:center;">🪙 7 монет</div>
+                    <div class="btn-flat btn-green" id="btn-claim-shop" onclick="claimShopGift()">Claim</div>
+                </div>
+                <div class="shop-item">
+                    <h2>Новая акция!</h2>
+                    <p id="shop-timer">23 ч. 59 м.</p>
+                    <p>Ускорение 2x для Кико</p>
+                    <p style="color:green; font-weight:bold;">В ПОДАРОК СИЛЬНАЯ ПУЛЯ!!!</p>
+                    <div class="btn-flat btn-red">Купить 99 гемов</div>
+                </div>
+                <div class="shop-item">
+                    <h2>Код автора</h2>
+                    <div class="btn-flat btn-green" onclick="showModal('modal-code')">Активировать</div>
+                </div>
+                <div class="shop-item">
+                    <h2>Наш Telegram</h2>
+                    <div class="btn-flat btn-blue" onclick="window.location.href='https://t.me/picogamepwa'">Открыть</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-code" class="modal">
+        <div class="modal-content modal-blue" style="border:none;">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-code')">X</div>
+            <h2 style="margin-bottom:10px; text-align:center;">Активируйте код</h2>
+            <input type="text" id="code-input">
+            <div class="btn-flat btn-yellow" onclick="activateCode()" style="color:#000;">Активировать</div>
+        </div>
+    </div>
+
+    <div id="modal-daily" class="modal">
+        <div class="modal-content modal-gray">
+            <div class="close-btn btn-flat btn-red close-right" style="color:white;" onclick="hideModal('modal-daily')">Х</div>
+            <h1 style="color:white; margin-bottom: 20px;">Ежедневные награды</h1>
+            <div style="display:flex; flex-direction:column; gap:10px; color:white; font-size: 20px;">
+                <div>1 день: 5 гемов</div>
+                <div>2 день: 10 монет</div>
+                <div>3 день: 500 монет</div>
+                <div>4 день: 3 гема</div>
+                <div>5 день: 10 гемов и 450 монет</div>
+            </div>
+            <br>
+            <div class="btn-flat btn-green" id="btn-claim-daily" style="background:#005500; display:inline-block;" onclick="claimDaily()">Забрать</div>
+            <div id="daily-timer" style="color:white; margin-top:5px;"></div>
+        </div>
+    </div>
+
+    <div id="modal-pass" class="modal">
+        <div class="modal-content modal-gray">
+            <div class="close-btn btn-flat btn-red close-right" style="color:white;" onclick="hideModal('modal-pass')">Х</div>
+            <h1 class="rainbow-text" style="position:absolute; top:20px; left: 20px; font-size:40px;">Pass!!!</h1>
+            <div style="position:absolute; bottom: 20px; left: 20px; display:flex; gap:10px;">
+                <div class="btn-flat btn-yellow" onclick="document.querySelector('.pass-levels').scrollLeft = 0">Перейти на текущий уровень</div>
+                <div class="btn-flat btn-yellow" onclick="document.querySelector('.pass-levels').scrollLeft = 9999">Перейти на последний уровень</div>
+            </div>
+            <div class="pass-levels" id="pass-container"></div>
+        </div>
+    </div>
+
+    <div id="modal-secret" class="modal">
+        <div class="modal-content modal-purple">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-secret')">Х</div>
+            <h2>Магазин бойцов</h2>
+            <div style="display:flex; gap:20px; margin-top:20px;">
+                <div style="border: 2px solid #fff; padding: 10px; width: 45%;">
+                    <h3 style="color:white;">Раток</h3>
+                    <div style="font-size: 40px; text-align:center; line-height: 1;" class="skin-wrapper">
+                        <div>👿</div><div>🩻</div><div>🦿🦿</div>
+                    </div>
+                    <p style="font-size:12px; margin: 10px 0;">Он был начальником в школе но потом решил оттуда свалить.</p>
+                    <div class="btn-flat btn-green" id="btn-buy-ratok" onclick="buyBrawler('ratok', 299, 'gems')" style="color:#000;">Купить за 299 гемов</div>
+                </div>
+                <div style="border: 2px solid #fff; padding: 10px; width: 45%;">
+                    <h3>Уток</h3>
+                    <div style="font-size: 40px; text-align:center; line-height: 1;" class="skin-wrapper">
+                        <div>💩</div><div>👕</div><div>🦵🦵</div>
+                    </div>
+                    <p style="font-size:12px; margin: 10px 0;">Он пошёл в какой то портал и случайно превратился в скин с какашками.</p>
+                    <div class="btn-flat btn-green" id="btn-buy-utok" onclick="buyBrawler('utok', 599, 'coins')" style="color:#000;">Купить за 599 монет</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game" class="screen">
+        <div class="arena" id="arena"></div>
+        <div id="game-ui">
+            <div id="game-top-right">
+                <div class="btn-flat btn-gray" id="btn-training-shop" style="display:none;" onclick="showModal('modal-shop')">Магазин</div>
+            </div>
+        </div>
+        <div class="joystick-zone" id="joy-left">
+            <div class="joy-knob"></div>
+        </div>
+        <div class="joystick-zone" id="joy-right">
+            <div class="joy-knob"></div>
+        </div>
+    </div>
+
+    <script>
+        const img1 = new Image(); img1.src = "https://i.ibb.co/TDKZK4rz/IMG-1949.jpg";
+        const img2 = new Image(); img2.src = "https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg";
+
+        let data = JSON.parse(localStorage.getItem('pico_data')) || {
+            coins: 0, gems: 0, level: 0,
+            nick: '', nickClicks: 0,
+            selectedBrawler: 'mito',
+            unlocked: ['mito', 'kiko'],
+            dailyDay: 1, lastDailyTimestamp: 0,
+            lastShopTimestamp: 0,
+            passLevels: [], passClaimed: [],
+            codesUsed: {}
+        };
+
+        const brawlers = {
+            'mito': { emo: '<div class="skin-wrapper"><div>😀</div><div>🩻</div><div>🩳</div></div>🦵🦵</div></div>', hp: 1000, dmg: 300 },
+            'kiko': { emo: '<div class="skin-wrapper"><div>😎</div><div>🩻</div><div>🩲</div></div>🦵🦵</div></div>', hp: 1000, dmg: 300 },
+            'ratok': { emo: '<div class="skin-wrapper"><div>👿</div><div>🩻</div><div>🦿🦿</div></div>', hp: 1000, dmg: 300 },
+            'utok': { emo: '<div class="skin-wrapper"><div>💩</div><div>👕</div><div>🦵🦵</div></div>', hp: 1000, dmg: 300 }
+        };
+
+        let mode = 'showdown';
+        let gameLoop;
+        let isPlaying = false;
+
+        function saveData() {
+            localStorage.setItem('pico_data', JSON.stringify(data));
+            updateMenuUI();
+        }
+
+        function getMskDate() {
+            return new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+        }
+
+        function getTimeToTomorrowStr() {
+            let now = getMskDate();
+            let tomorrow = new Date(now);
+            tomorrow.setHours(24,0,0,0);
+            let diff = tomorrow - now;
+            let h = Math.floor(diff / (1000*60*60));
+            let m = Math.floor((diff % (1000*60*60)) / (1000*60));
+            return `${h} ч. ${m} м.`;
+        }
+
+        setInterval(() => {
+            document.getElementById('shop-timer').innerText = getTimeToTomorrowStr();
+            document.getElementById('season-timer').innerText = `19 д. ${getMskDate().getHours()} ч.`;
+            
+            let now = getMskDate();
+            let todayStr = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate();
+            if(data.lastDailyTimestamp === todayStr) {
+                document.getElementById('btn-claim-daily').style.background = '#888';
+                document.getElementById('btn-claim-daily').innerText = 'Забрано';
+                document.getElementById('daily-timer').innerText = getTimeToTomorrowStr();
+            } else {
+                document.getElementById('btn-claim-daily').style.background = '#005500';
+                document.getElementById('btn-claim-daily').innerText = 'Забрать';
+                document.getElementById('daily-timer').innerText = '';
+            }
+
+            if(data.lastShopTimestamp === todayStr) {
+                document.getElementById('btn-claim-shop').style.background = '#888';
+                document.getElementById('btn-claim-shop').innerText = 'Забрано';
+            }
+        }, 1000);
+
+        async function runLoading() {
+            const pb = document.getElementById('progress-bar');
+            const pt = document.getElementById('progress-text');
+            const sc = document.getElementById('server-connect');
+            
+            const wait = (ms) => new Promise(r => setTimeout(r, ms));
+            
+            await wait(5000);
+            pb.style.width = '7%'; pt.innerText = '7%';
+            await wait(2000);
+            pb.style.width = '9%'; pt.innerText = '9%';
+            await wait(1000);
+            pb.style.width = '100%'; pt.innerText = '100%';
+            await wait(3000);
+            sc.style.display = 'block';
+            await wait(5000);
+            
+            document.getElementById('loading').classList.remove('active-screen');
+            document.getElementById('menu').classList.add('active-screen');
+            updateMenuUI();
+            generatePass();
+        }
+
+        function updateMenuUI() {
+            document.getElementById('ui-coins').innerText = data.coins;
+            document.getElementById('ui-gems').innerText = data.gems;
+            document.getElementById('menu-character').innerHTML = brawlers[data.selectedBrawler].emo;
+            
+            let btnNick = document.getElementById('btn-nick');
+            btnNick.innerText = data.nick || 'Выбрать ник';
+            if(data.nickClicks >= 3 && data.nick) {
+                btnNick.classList.add('rainbow-text');
+            }
+
+            if(data.unlocked.includes('ratok')) {
+                let btn = document.getElementById('btn-buy-ratok');
+                btn.className = 'btn-flat btn-gray'; btn.innerText = 'Куплено';
+            }
+            if(data.unlocked.includes('utok')) {
+                let btn = document.getElementById('btn-buy-utok');
+                btn.className = 'btn-flat btn-gray'; btn.innerText = 'Куплено';
+            }
+        }
+
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        document.getElementById('btn-nick').onclick = () => {
+            if(data.nick) {
+                data.nickClicks++;
+                saveData();
+            } else {
+                showModal('modal-nick');
+            }
+        };
+        function saveNick() {
+            let val = document.getElementById('nick-input').value;
+            if(val) { data.nick = val; saveData(); hideModal('modal-nick'); }
+        }
+
+        function selectBrawler(id) {
+            data.selectedBrawler = id;
+            saveData();
+            hideModal('modal-brawlers');
+        }
+        function buyBrawler(id, price, currency) {
+            if(data.unlocked.includes(id)) return;
+            if(data[currency] >= price) {
+                data[currency] -= price;
+                data.unlocked.push(id);
+                saveData();
+            } else {
+                alert('Не хватает ' + (currency === 'coins' ? 'монет!' : 'гемов!'));
+            }
+        }
+function activateCode() {
+    let inputField = document.getElementById('code-input');
+    let code = inputField.value.toLowerCase();
+    let btn = document.getElementById('btn-activate');
+    let resText = document.getElementById('code-result-text');
+
+    if (data.codesUsed[code]) {
+        alert('Уже активирован!');
+        return;
+    }
+
+    let success = false;
+    let message = '';
+
+    if (code === 'developer') {
+        data.gems += 25;
+        success = true;
+        message = '+25 гемов!';
+    } else if (code === 'rypto') {
+        data.coins += 100;
+        success = true;
+        message = '+100 монет!';
+    } else if (code === 'voco') {
+        data.coins += 400;
+        success = true;
+        message = '+400 монет!';
+    } else if (code === 'byerealracing3') {
+        data.gems += 20;
+        success = true;
+        message = '+20 гемов!';
+    } else {
+        alert('Неверный код!');
+        return;
+    }
+
+    if (success) {
+        data.codesUsed[code] = true;
+        saveData();
+        alert(message);
+
+        // меняем кнопку
+        btn.innerText = 'Активировано';
+        btn.style.backgroundColor = 'gray';
+        btn.style.color = 'white';
+        btn.onclick = null; // отключаем нажатие
+
+        // выводим код под кнопкой
+        resText.innerText = 'Код: ' + code;
+    }
+}
+
+        
+
+        function claimShopGift() {
+            let todayStr = getMskDate().getFullYear() + '-' + getMskDate().getMonth() + '-' + getMskDate().getDate();
+            if(data.lastShopTimestamp === todayStr) return;
+            data.coins += 7;
+            data.lastShopTimestamp = todayStr;
+            saveData();
+        }
+
+        function claimDaily() {
+            let todayStr = getMskDate().getFullYear() + '-' + getMskDate().getMonth() + '-' + getMskDate().getDate();
+            if(data.lastDailyTimestamp === todayStr) return;
+            
+            if(data.dailyDay === 1) data.gems += 5;
+            if(data.dailyDay === 2) data.coins += 10;
+            if(data.dailyDay === 3) data.coins += 500;
+            if(data.dailyDay === 4) data.gems += 3;
+            if(data.dailyDay === 5) { data.gems += 10; data.coins += 450; data.dailyDay = 0; }
+            
+            data.dailyDay++;
+            data.lastDailyTimestamp = todayStr;
+            saveData();
+        }
+
+        function generatePass() {
+            if(data.passLevels.length === 0) {
+                for(let i=1; i<=60; i++) {
+                    let isGem = Math.random() > 0.7;
+                    data.passLevels.push({
+                        type: isGem ? 'gems' : 'coins',
+                        amount: isGem ? Math.floor(Math.random()*10)+1 : Math.floor(Math.random()*100)+50
+                    });
+                }
+                saveData();
+            }
+            let c = document.getElementById('pass-container');
+            c.innerHTML = '';
+            data.passLevels.forEach((lvl, i) => {
+                let cube = document.createElement('div');
+                cube.className = 'pass-cube' + (data.passClaimed[i] ? ' claimed' : '');
+                cube.innerHTML = `${i+1}<br>${lvl.amount} ${lvl.type=='gems'?'💎':'🪙'}`;
+                cube.onclick = () => claimPass(i);
+                c.appendChild(cube);
+            });
+        }
+        function claimPass(i) {
+            if(data.passClaimed[i] || data.level < i) return;
+            data.passClaimed[i] = true;
+            data[data.passLevels[i].type] += data.passLevels[i].amount;
+            saveData(); generatePass();
+        }
+
+        let modeBtn = document.getElementById('btn-mode');
+        modeBtn.onclick = () => {
+            if(mode === 'showdown') { mode = 'training'; modeBtn.innerHTML = 'Режим: Тренировка<br><small></small>'; }
+            else if(mode === 'training') { mode = 'showdown'; modeBtn.innerHTML = 'Режим: Столкновение<br><small></small>'; }
+            else { mode = 'showdown'; modeBtn.innerHTML = 'Режим: Столкновение<br><small></small>'; }
+        };
+        
+        let touchStartY = 0;
+        modeBtn.addEventListener('touchstart', e => { touchStartY = e.changedTouches[0].screenY; });
+        modeBtn.addEventListener('touchend', e => {
+            let dy = e.changedTouches[0].screenY - touchStartY;
+            if(dy < -30) {
+                mode = 'duo';
+                modeBtn.innerHTML = 'Режим: Двойное столкновение<br><small></small>';
+            }
+        });
+
+        document.getElementById('btn-pass').onclick = () => showModal('modal-pass');
+        document.getElementById('btn-secret').onclick = () => showModal('modal-secret');
+
+        const arena = document.getElementById('arena');
+        let player = { x: 1000, y: 1000, vx: 0, vy: 0, hp: 1000, maxHp: 1000, el: null, inBush: false };
+        let bots = [];
+        let bullets = [];
+        let bushes = [];
+        
+        let joyLeft = { active: false, dx: 0, dy: 0, id: null };
+        let joyRight = { active: false, dx: 0, dy: 0, id: null, lastShoot: 0 };
+
+        function setupJoystick(elId, joyObj) {
+            const zone = document.getElementById(elId);
+            const knob = zone.querySelector('.joy-knob');
+            
+            zone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    let t = e.changedTouches[i];
+                    if(!joyObj.active) {
+                        joyObj.active = true; joyObj.id = t.identifier;
+                        updateJoy(t, zone, knob, joyObj);
+                    }
+                }
+            });
+            zone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    if(e.changedTouches[i].identifier === joyObj.id) {
+                        updateJoy(e.changedTouches[i], zone, knob, joyObj);
+                    }
+                }
+            });
+            const end = e => {
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    if(e.changedTouches[i].identifier === joyObj.id) {
+                        joyObj.active = false; joyObj.id = null;
+                        joyObj.dx = 0; joyObj.dy = 0;
+                        knob.style.transform = `translate(-50%, -50%)`;
+                    }
+                }
+            };
+            zone.addEventListener('touchend', end);
+            zone.addEventListener('touchcancel', end);
+        }
+
+        function updateJoy(touch, zone, knob, joyObj) {
+            const rect = zone.getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
+            const max = rect.width/2;
+            const dist = Math.hypot(dx, dy);
+            
+            if(dist > max) { dx = (dx/dist)*max; dy = (dy/dist)*max; }
+            knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            
+            joyObj.dx = dx / max;
+            joyObj.dy = dy / max;
+        }
+
+        setupJoystick('joy-left', joyLeft);
+        setupJoystick('joy-right', joyRight);
+
+        function createEntity(x, y, emo, isBot, hp) {
+            let el = document.createElement('div');
+            el.className = 'entity';
+            el.innerHTML = `<div class="hp-bar"><div class="hp-fill"></div></div>${emo}`;
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            arena.appendChild(el);
+            return { x, y, el, hp, maxHp: hp, isBot, vx:0, vy:0, lastShoot: Date.now() + Math.random()*2000, frozen: 0 };
+        }
+
+        function startGame() {
+            document.getElementById('menu').classList.remove('active-screen');
+            document.getElementById('game').classList.add('active-screen');
+            arena.innerHTML = '';
+            bots = []; bullets = []; bushes = [];
+            
+            document.getElementById('btn-training-shop').style.display = (mode === 'training') ? 'block' : 'none';
+
+            for(let i=0; i<15; i++) {
+                let b = document.createElement('div');
+                b.className = 'bush';
+                let bx = Math.random()*1800; let by = Math.random()*1800;
+                b.style.left = bx + 'px'; b.style.top = by + 'px';
+                arena.appendChild(b);
+                bushes.push({x: bx+75, y: by+75, r: 75});
+            }
+
+            let bInfo = brawlers[data.selectedBrawler];
+            player = createEntity(1000, 1000, bInfo.emo, false, bInfo.hp);
+            player.dmg = bInfo.dmg;
+            
+            if(data.selectedBrawler === 'utok') {
+                player.el.onclick = () => {
+                    if(mode === 'showdown') bots.splice(0, 3).forEach(b=>b.el.remove());
+                    if(mode === 'duo') bots.filter(b=>b.isBot).splice(0, 2).forEach(b=>b.el.remove());
+                };
+            }
+
+            if(mode === 'showdown') {
+                for(let i=0; i<3; i++) bots.push(createEntity(Math.random()*2000, Math.random()*2000, '🤖', true, 500));
+            } else if(mode === 'duo') {
+                for(let i=0; i<5; i++) bots.push(createEntity(Math.random()*2000, Math.random()*2000, '🤖', true, 500));
+                bots.push(createEntity(1100, 1000, '<div style="background:yellow">🐧</div>', false, 500));
+            }
+
+            isPlaying = true;
+            lastTime = performance.now();
+            requestAnimationFrame(updateGame);
+        }
+
+        let lastTime = 0;
+        function updateGame(time) {
+            if(!isPlaying) return;
+            let dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            let speed = 400;
+            player.x += joyLeft.dx * speed * dt;
+            player.y += joyLeft.dy * speed * dt;
+            player.x = Math.max(50, Math.min(1950, player.x));
+            player.y = Math.max(50, Math.min(1950, player.y));
+            
+            player.inBush = bushes.some(b => Math.hypot(player.x - b.x, player.y - b.y) < b.r);
+            player.el.style.opacity = player.inBush ? 0.5 : 1;
+
+            if(joyRight.active && time - joyRight.lastShoot > 500) {
+                joyRight.lastShoot = time;
+                shoot(player.x, player.y, joyRight.dx, joyRight.dy, false);
+            }
+
+            bots.forEach(bot => {
+                if(bot.hp <= 0) return;
+                
+                if(bot.frozen > 0) bot.frozen -= dt;
+                else {
+                    let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
+                    let seesPlayer = !player.inBush || dist < 150;
+                    
+                    if(seesPlayer && bot.isBot) {
+                        bot.vx = (player.x - bot.x) / dist;
+                        bot.vy = (player.y - bot.y) / dist;
+                    } else if (Math.random() < 0.05) {
+                        bot.vx = (Math.random() - 0.5) * 2;
+                        bot.vy = (Math.random() - 0.5) * 2;
+                    }
+                    
+                    let botSpeed = 200;
+                    bot.x += bot.vx * botSpeed * dt;
+                    bot.y += bot.vy * botSpeed * dt;
+                    bot.x = Math.max(50, Math.min(1950, bot.x));
+                    bot.y = Math.max(50, Math.min(1950, bot.y));
+                }
+
+                if(time - bot.lastShoot > 5000 && bot.isBot) {
+                    bot.lastShoot = time;
+                    let dx = player.x - bot.x; let dy = player.y - bot.y;
+                    let len = Math.hypot(dx, dy);
+                    shoot(bot.x, bot.y, dx/len, dy/len, true);
+                }
+                
+                updateEntity(bot);
+            });
+
+            for(let i = bullets.length-1; i>=0; i--) {
+                let b = bullets[i];
+                b.x += b.vx * 800 * dt;
+                b.y += b.vy * 800 * dt;
+                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+                
+                if(b.x<0 || b.x>2000 || b.y<0 || b.y>2000) { b.el.remove(); bullets.splice(i,1); continue; }
+                
+                if(b.isBot) {
+                    if(Math.hypot(b.x - player.x, b.y - player.y) < 40) {
+                        player.hp -= 40;
+                        b.el.remove(); bullets.splice(i,1);
+                    }
+                } else {
+                    bots.forEach(bot => {
+                        if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < 40) {
+                            bot.hp -= player.dmg;
+                            if(data.selectedBrawler === 'ratok') bot.frozen = 3;
+                            b.el.remove(); bullets.splice(i,1);
+                        }
+                    });
+                }
+            }
+
+            bots = bots.filter(bot => {
+                if(bot.hp <= 0) { bot.el.remove(); return false; }
+                return true;
+            });
+
+            updateEntity(player);
+
+            let cx = window.innerWidth/2 - player.x;
+            let cy = window.innerHeight/2 - player.y;
+            arena.style.transform = `translate(${cx}px, ${cy}px)`;
+
+            if(player.hp <= 0) endGame(false);
+            else if(mode !== 'training' && bots.filter(b=>b.isBot).length === 0) endGame(true);
+            else requestAnimationFrame(updateGame);
+        }
+
+        function updateEntity(ent) {
+            ent.el.style.left = ent.x + 'px';
+            ent.el.style.top = ent.y + 'px';
+            let hpFill = ent.el.querySelector('.hp-fill');
+            if(hpFill) hpFill.style.width = Math.max(0, (ent.hp/ent.maxHp)*100) + '%';
+        }
+
+        function shoot(x, y, dx, dy, isBot) {
+            let el = document.createElement('div');
+            el.className = 'bullet ' + (isBot ? 'bullet-bot' : '');
+            arena.appendChild(el);
+            bullets.push({x, y, vx: dx, vy: dy, isBot, el});
+        }
+
+        function endGame(win) {
+            isPlaying = false;
+            if(win) {
+                alert("ПОБЕДА!\n+80 монет\n+5 гемов");
+                data.coins += 80; data.gems += 5; data.level += 1;
+            } else {
+                alert("ПОРАЖЕНИЕ\n+70 монет\n+0 уровней и гемов");
+                data.coins += 70;
+            }
+            saveData();
+            
+            document.getElementById('game').classList.remove('active-screen');
+            document.getElementById('loading').classList.add('active-screen');
+            document.getElementById('progress-bar').style.width = '0%';
+            
+            setTimeout(() => {
+                document.getElementById('progress-bar').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('loading').classList.remove('active-screen');
+                    document.getElementById('menu').classList.add('active-screen');
+                }, 500);
+            }, 500);
+        }
+
+        runLoading();
+    </script>
+</body>
+</html>
