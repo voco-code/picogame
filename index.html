@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/DH3VC30C/IMG-5798.jpg">
+    <link rel="preload" as="image" href="https://i.ibb.co/TDKZK4rz/IMG-1949.jpg">
+    <link rel="preload" as="image" href="https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg">
+    <title>Pico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-radius: 0 !important;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+        body, html {
+            position: fixed; /* Фиксируем экран от сдвигов при повороте устройства */
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            touch-action: none; /* Запрещаем системные скроллы и зумы браузера */
+        }
+        
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes rainbowText {
+            0% { color: red; } 16% { color: orange; } 33% { color: yellow; } 50% { color: green; } 66% { color: blue; } 83% { color: purple; } 100% { color: red; }
+        }
+
+        .rainbow-bg {
+            background: linear-gradient(270deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 1400% 1400%;
+            animation: rainbow 5s ease infinite;
+        }
+        .rainbow-text {
+            animation: rainbowText 2s infinite;
+        }
+
+        /* Выключение радужных шрифтов для пасса и сезона */
+        .no-rainbow #ui-season-title {
+            animation: none !important;
+            color: #000 !important;
+        }
+        .no-rainbow #btn-pass {
+            animation: none !important;
+            color: #fff !important;
+        }
+
+        .screen {
+            position: fixed; /* Изменено с absolute для идеального центрирования при повороте */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        .active-screen {
+            display: block;
+        }
+
+        #loading {
+            z-index: 9999;
+        }
+        #loading-text {
+            position: absolute;
+            top: 10%;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+        #progress-bar-container {
+            position: absolute;
+            bottom: 10%;
+            left: 10%;
+            width: 80%;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #000;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #000;
+            transition: width 0.2s;
+        }
+        #progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 5px;
+            color: white;
+            font-size: 20px;
+            mix-blend-mode: difference;
+        }
+        #server-connect {
+            position: absolute;
+            bottom: 20%;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            display: none;
+        }
+
+        #menu {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://i.ibb.co/TDKZK4rz/IMG-1949.jpg') center/cover;
+            background-size: cover;
+        }
+        .top-bar {
+            position: absolute;
+            top: 0; width: 100%; height: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 10px;
+        }
+        .balance-box {
+            background: #ccc;
+            padding: 5px 10px;
+            font-weight: bold;
+            display: flex; gap: 15px;
+            border: 2px solid #000;
+        }
+        .btn-flat {
+            background: #fff;
+            border: 2px solid #000;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .btn-flat:active { transform: scale(0.95); }
+        .btn-yellow { background: #ffcc00; }
+        .btn-green { background: #00aa00; color: white; }
+        .btn-blue { background: #0000ff; color: white; }
+        .btn-red { background: #ff0000; color: white; }
+        .btn-gray { background: #888; color: white; }
+
+        .left-menu {
+            position: absolute;
+            left: 10px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .bottom-right-menu {
+            position: absolute;
+            right: 10px; bottom: 10px;
+            display: flex; gap: 10px; align-items: flex-end;
+        }
+        .play-btn {
+            font-size: 30px; padding: 20px 40px;
+        }
+
+        .center-character {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 60px; text-align: center;
+        }
+
+        .skin-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        .skin-wrapper > div {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            position: fixed; /* Изменено с absolute для адаптивности при повороте */
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            width: 90%; height: 90%;
+            max-width: 90vw;
+            max-height: 90vh; /* Чтобы модальные окна не уезжали за экран в горизонтальном режиме */
+            border: 4px solid #000;
+            padding: 20px;
+            position: relative;
+            overflow-y: auto;
+        }
+        .modal-green { background: #00aa00; }
+        .modal-gray { background: #888; }
+        .modal-blue { background: #0044cc; color: white; height: auto!important; }
+        .modal-purple { background: purple; color: white; }
+
+        .close-btn {
+            position: absolute; top: 10px; left: 10px;
+            width: 40px; height: 40px;
+            font-size: 24px; display: flex; justify-content: center; align-items: center;
+        }
+        .close-right { left: auto; right: 10px; }
+
+        .shop-row {
+            display: flex; gap: 20px; overflow-x: auto; padding-top: 50px;
+            width: 100%; height: 100%;
+        }
+        .shop-item {
+            min-width: 250px; background: #fff; color: #000;
+            border: 3px solid #000; padding: 15px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .pass-levels {
+            display: flex; gap: 10px; overflow-x: auto; padding-top: 60px;
+        }
+        .pass-cube {
+            min-width: 80px; height: 80px;
+            background: #fff; color: #000; border: 2px solid #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-weight: bold; cursor: pointer;
+        }
+        .pass-cube.claimed { background: #444; color: #888; }
+        
+        #game { background: #222; position: relative; overflow: hidden; }
+        .arena {
+            width: 2000px; height: 2000px;
+            background: #333; position: absolute;
+            transform: translate(0, 0);
+            transition: transform 0.1s linear;
+        }
+        .bush {
+            position: absolute; background: #005500;
+            width: 150px; height: 150px; opacity: 0.8; border: 2px solid #003300;
+        }
+        .entity {
+            position: absolute; text-align: center;
+            transform: translate(-50%, -50%); z-index: 10;
+        }
+        .hp-bar {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 50px; height: 8px;
+            background: red; border: 1px solid #000;
+        }
+        .hp-fill { height: 100%; background: #00ff00; width: 100%; }
+        .bullet {
+            position: absolute; width: 15px; height: 15px;
+            background: yellow; border: 1px solid #000;
+            transform: translate(-50%, -50%); z-index: 5;
+        }
+        .bullet-bot { background: red; }
+
+        .joystick-zone {
+            position: absolute; bottom: 30px; width: 150px; height: 150px;
+            border-radius: 50% !important; opacity: 0.5; z-index: 20;
+        }
+        #joy-left { left: 30px; background: rgba(0,0,255,0.3); border: 3px solid blue; }
+        #joy-right { right: 30px; background: rgba(255,0,0,0.3); border: 3px solid red; }
+        .joy-knob {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 50px; height: 50px; border-radius: 50% !important;
+        }
+        #joy-left .joy-knob { background: blue; }
+        #joy-right .joy-knob { background: red; }
+        
+        #game-ui { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 30;}
+        #game-top-right { position: absolute; top: 10px; right: 10px; pointer-events:auto;}
+
+        input { padding: 10px; font-size: 16px; border: 2px solid #000; margin-bottom: 10px; width: 100%; color: #000; background: #fff;}
+        .brawlers-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="screen active-screen rainbow-bg">
+        <div id="loading-text">Pico</div>
+        <div id="server-connect">Подключение к серверу...</div>
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+            <div id="progress-text">0%</div>
+        </div>
+    </div>
+
+    <div id="menu" class="screen">
+        <div class="top-bar">
+            <div style="display:flex; gap: 10px; align-items: center;">
+                <div id="btn-nick" class="btn-flat btn-blue">Выбрать ник</div>
+                <div style="background: #fff; border: 2px solid #000; padding: 5px;">
+                    <div style="font-size: 10px; font-weight:bold; color:#000;"><span id="ui-season-num-text">1-й сезон</span> <span id="season-timer">-- д. -- ч.</span></div>
+                    <div id="ui-season-title" class="rainbow-text" style="font-size: 12px; font-weight:bold;">МАСШТАБНОЕ ЛЕТО!!!</div>
+                </div>
+                <div id="btn-pass" class="btn-flat btn-gray rainbow-text" style="font-weight:bold;">Pass!!!</div>
+                <div id="btn-secret" class="btn-flat rainbow-bg" style="font-size: 24px; padding: 5px 10px; color:white;">😀</div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+                <div class="balance-box" style="color:#000;">
+                    <div id="ui-coins-lbl">Монеты: <span id="ui-coins">0</span></div>
+                    <div id="ui-gems-lbl">Гемы: <span id="ui-gems">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-character" id="menu-character"></div>
+
+        <div class="left-menu">
+            <div class="btn-flat btn-gray" id="btn-menu-shop" onclick="showModal('modal-shop')">🏬 Магазин</div>
+            <div class="btn-flat btn-gray" id="btn-menu-brawlers" onclick="openBrawlersModal()">😎 Бойцы</div>
+            <div class="btn-flat btn-gray" id="btn-menu-daily" onclick="showModal('modal-daily')">📅 Ежедневные награды</div>
+        </div>
+
+        <div style="position: absolute; left: 10px; bottom: 10px; z-index: 10; display: flex; gap: 10px;">
+            <div id="btn-settings" class="btn-flat btn-gray" style="font-size: 20px; padding: 10px 15px; cursor: pointer;" onclick="showModal('modal-settings')">⚙️</div>
+            <div id="btn-events" class="btn-flat btn-gray" style="font-size: 20px; padding: 10px 15px; cursor: pointer;" onclick="showModal('modal-events')">🎮</div>
+        </div>
+
+        <div class="bottom-right-menu">
+            <div class="btn-flat btn-gray" id="btn-mode" style="color:white;">Режим: Столкновение<br><small></small></div>
+            <div class="btn-flat btn-yellow play-btn" id="btn-play-text" onclick="startGame()" style="color:#000;">ИГРАТЬ</div>
+        </div>
+    </div>
+
+    <div id="modal-events" class="modal">
+        <div class="modal-content modal-gray" style="background: #333; color: #fff; width: 90%; max-width: 500px; padding: 20px; border: 4px solid #000; position: relative; display: flex; flex-direction: column; gap: 15px; height: auto !important;">
+            <div class="close-btn close-right" style="position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; background: #ff0000; border: 2px solid #000; color: #000; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; left: auto;" onclick="hideModal('modal-events')">X</div>
+            <h2 style="text-align: center; font-size: 28px; text-transform: uppercase; margin-bottom: 5px;">Ивенты</h2>
+            
+            <div style="border: 3px solid #000; background: #222; padding: 15px; display: flex; flex-direction: column; gap: 5px;">
+                <h3 style="margin: 0; font-size: 18px; color: #ffcc00;">Сезонная валюта:</h3>
+                <div id="events-popcorn-count" style="font-size: 24px; font-weight: bold;">0 🍿</div>
+            </div>
+            
+            <div style="display: flex; justify-content: center; margin-top: 5px;">
+                <div style="width: 180px; height: 320px; border: 4px solid #000; background: #444; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 15px; box-sizing: border-box;">
+                    <div style="text-align: center;">
+                        <h3 style="margin: 0; font-size: 20px; font-weight: bold; color: #fff;">Шатко!</h3>
+                        <p style="font-size: 12px; color: #ccc; margin: 2px 0 0 0;">За попкорны</p>
+                    </div>
+                    
+                    <div style="font-size: 50px; line-height: 1.1;" class="skin-wrapper">
+                        <div>😏</div>
+                        <div>🎽</div>
+                        <div>🩲</div>
+                        <div>🦿🦵</div>
+                    </div>
+                    
+                    <div id="btn-buy-shatko-popcorn" class="btn-flat" style="background: #ff0000; color: #000; width: 100%; text-align: center; font-weight: bold; font-size: 12px; padding: 8px 2px; cursor: pointer; border: 2px solid #000;" onclick="buyShatkoPopcorn()">
+                        КУПИТЬ ЗА 169 🍿
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-settings" class="modal">
+        <div class="modal-content modal-gray" style="position: relative; background: #444; color: #fff; width: 85%; height: auto; max-width: 500px; padding: 30px 20px; border: 4px solid #000;">
+            <div class="close-btn close-right" style="position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; background: #ff0000; border: 2px solid #000; color: #000; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 10;" onclick="hideModal('modal-settings')">X</div>
+            <div class="btn-flat" style="position: absolute; top: 10px; right: 60px; width: 40px; height: 40px; background: #fff; border: 2px solid #000; display: flex; justify-content: center; align-items: center; cursor: pointer; color: black; font-size: 20px; z-index: 10;" onclick="openControlsCustomizer()">📱</div>
+            <h2 id="sett-title" style="margin-bottom: 25px; text-align: center; font-size: 28px; text-transform: uppercase;">Настройки</h2>
+            
+            <div style="margin-bottom: 25px;">
+                <h3 id="sett-lang-title" style="margin-bottom: 10px;">Язык</h3>
+                <select id="setting-lang" style="width: 100%; padding: 10px; background: #fff; color: #000; border: 2px solid #000; font-weight: bold; font-size: 16px;" onchange="changeLanguage(this.value)">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="uk">Українська</option>
+                </select>
+            </div>
+            
+            <div>
+                <h3 id="sett-rainbow-title" style="margin-bottom: 10px;">Убрать Радужные Шрифты</h3>
+                <div id="btn-toggle-rainbow" class="btn-flat btn-red" style="width: 100%; text-align: center; cursor: pointer;" onclick="toggleRainbowSetting()">ВЫКЛ</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-controls" class="screen" style="background: #888; z-index: 2000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none;">
+        <div class="btn-flat" style="position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; background: #fff; border: 2px solid #000; display: flex; justify-content: center; align-items: center; cursor: pointer; color: black; font-size: 20px; z-index: 2001;" onclick="saveCustomControls()">☑️</div>
+        <div style="position: absolute; top: 20px; width: 100%; text-align: center; color: white; font-weight: bold; font-size: 16px; pointer-events: none;">
+            Перетащите джойстики для настройки управления
+        </div>
+        
+        <div class="joystick-zone" id="cust-joy-left" style="background: rgba(0,0,255,0.3); border: 3px solid blue; cursor: move; touch-action: none; position: absolute;">
+            <div class="joy-knob" style="background: blue;"></div>
+        </div>
+        <div class="joystick-zone" id="cust-joy-right" style="background: rgba(255,0,0,0.3); border: 3px solid red; cursor: move; touch-action: none; position: absolute;">
+            <div class="joy-knob" style="background: red;"></div>
+        </div>
+    </div>
+
+    <div id="modal-nick" class="modal">
+        <div class="modal-content modal-blue" style="border:none;">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-nick')">Х</div>
+            <h2 id="nick-modal-title" style="margin-bottom: 10px; text-align:center;">Выбрать ник</h2>
+            <input type="text" id="nick-input" placeholder="твой ник">
+            <div class="btn-flat btn-yellow" id="nick-select-btn" onclick="saveNick()" style="color:#000;">Выбрать</div>
+            <p id="nick-warning-lbl" style="font-size: 12px; color: white; text-align: center; margin-top: 12px; font-weight: bold;">
+                Внимание: ник можно изменить дважды а после чего нужно ждать 14 дней
+            </p>
+        </div>
+    </div>
+
+    <div id="modal-brawlers" class="modal">
+        <div class="modal-content modal-green">
+            <div class="close-btn btn-flat btn-gray" onclick="hideModal('modal-brawlers')">Х</div>
+            <h1 id="brawlers-modal-title" style="text-align:center; margin-bottom: 20px;">Бойцы</h1>
+            <div class="brawlers-list" id="brawlers-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-shop" class="modal">
+        <div class="modal-content modal-gray" style="position: relative;">
+            <div class="close-btn btn-flat btn-gray" onclick="hideModal('modal-shop')">Х</div>
+            <div class="btn-flat" id="shop-author-btn-lbl" style="position: absolute; top: 10px; right: 10px; background: #fff; border: 2px solid #000; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; color: black; z-index: 10;" onclick="showModal('modal-code')">©️</div>
+            <h1 id="shop-modal-title" style="position:absolute; top:20px; left: 70px; color:white;">Магазин</h1>
+            <div class="shop-row">
+                <div class="shop-item">
+                    <h2 id="shop-shield-heading">АКЦИЯ: СУПЕР-ЩИТ!</h2>
+                    <div style="font-size:40px; text-align:center;">🛡️ 🔵</div>
+                    <p id="shop-shield-desc-lbl" style="font-size:11px; margin: 5px 0; text-align:center;">Снижает урон на 50%! При смертельном уроне ломается и даёт <b>+400 XP</b> спасения!<br>Осталось: <span id="shop-shields-count" style="font-weight:bold; color:blue;">0</span> раунд(ов)</p>
+                    <div class="btn-flat btn-blue" id="shop-shield-btn-lbl" onclick="buyShield()">598 монет</div>
+                </div>
+                <div class="shop-item">
+                    <h2 id="shop-gift-heading">ПОДАРОК ДНЯ!</h2>
+                    <div style="font-size:40px; text-align:center;" id="shop-gift-amt-lbl">🪙 7 монет</div>
+                    <div class="btn-flat btn-green" id="btn-claim-shop" onclick="claimShopGift()"><span id="shop-gift-btn-lbl">Claim</span></div>
+                </div>
+                <div class="shop-item">
+                    <h2>Our Telegram</h2>
+                    <div class="btn-flat btn-blue" onclick="window.location.href='https://t.me/picogamepwa'">Открыть</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-code" class="modal">
+        <div class="modal-content modal-blue" style="border:none; position: relative;">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-code')">X</div>
+            <div class="btn-flat" style="position:absolute; top:10px; right:60px; width:40px; height:40px; background:#fff; color:#000; font-size:20px; display:flex; justify-content:center; align-items:center; border:2px solid #000; pointer-events: none;">©️</div>
+            <h2 style="margin-bottom:10px; text-align:center;" id="code-modal-title">Активируйте код</h2>
+            <input type="text" id="code-input">
+            <div class="btn-flat btn-yellow" id="code-modal-btn" onclick="activateCode()" style="color:#000;">Активировать</div>
+        </div>
+    </div>
+
+    <div id="modal-daily" class="modal">
+        <div class="modal-content modal-gray">
+            <div class="close-btn btn-flat btn-red close-right" style="color:white;" onclick="hideModal('modal-daily')">Х</div>
+            <h1 id="daily-modal-title" style="color:white; margin-bottom: 20px;">Ежедневные награды</h1>
+            <div style="display:flex; flex-direction:column; gap:10px; color:white; font-size: 20px;">
+                <div id="daily-d1">1 день: 7 монет</div>
+                <div id="daily-d2">2 день: 15 попкорнов</div>
+                <div id="daily-d3">3 день: 5 гемов</div>
+                <div id="daily-d4">4 день: 60 попкорнов</div>
+                <div id="daily-d5">5 день: 100 монет</div>
+            </div>
+            <br>
+            <div class="btn-flat btn-green" id="btn-claim-daily" style="background:#005500; display:inline-block;" onclick="claimDaily()">Забрать</div>
+            <div id="daily-timer" style="color:white; margin-top:5px;"></div>
+        </div>
+    </div>
+
+    <div id="modal-pass" class="modal">
+        <div class="modal-content modal-gray">
+            <div class="close-btn btn-flat btn-red close-right" style="color:white;" onclick="hideModal('modal-pass')">Х</div>
+            <h1 class="rainbow-text" style="position:absolute; top:20px; left: 20px; font-size:40px;">Pass!!!</h1>
+            
+            <div id="dev-level-btn-container" style="position:absolute; bottom: 75px; left: 20px; display:none;">
+                <div class="btn-flat" id="btn-dev-level" style="background:#ffcc00; color:#ffcc00; font-weight:bold; border:2px solid #000;" onclick="showModal('modal-dev-level')">УКАЗАТЬ УРОВЕНЬ</div>
+            </div>
+
+            <div style="position:absolute; bottom: 20px; left: 20px; display:flex; gap:10px;">
+                <div class="btn-flat btn-yellow" id="pass-goto-curr-btn" onclick="document.querySelector('.pass-levels').scrollLeft = 0">Перейти на текущий уровень</div>
+                <div class="btn-flat btn-yellow" id="pass-goto-last-btn" onclick="document.querySelector('.pass-levels').scrollLeft = 9999">Перейти на последний уровень</div>
+            </div>
+            <div class="pass-levels" id="pass-container"></div>
+        </div>
+    </div>
+
+    <div id="modal-dev-level" class="modal">
+        <div class="modal-content modal-gray" style="width: 300px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 4px solid #000; height: auto !important;">
+            <h2 style="color: white; margin-bottom: 15px;">Укажи число</h2>
+            <input type="number" id="dev-level-input" style="width: 80%; text-align: center;">
+            <div class="btn-flat btn-yellow" style="color: black;" onclick="submitDevLevel()">УКАЗАТЬ</div>
+        </div>
+    </div>
+
+    <div id="modal-secret" class="modal">
+        <div class="modal-content modal-purple">
+            <div class="close-btn btn-flat btn-gray close-right" onclick="hideModal('modal-secret')">Х</div>
+            <h2 id="secret-modal-title">Магазин бойцов</h2>
+            <div style="display:flex; flex-wrap: wrap; gap:20px; margin-top:20px;" id="secret-shop-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="game" class="screen">
+        <div id="ratok-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; box-shadow: inset 0 0 120px 60px rgba(255,255,255,0.35); display: none; z-index: 35;"></div>
+        <div id="shatko-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: rgba(255,255,0,0.25); display: none; z-index: 35; box-shadow: inset 0 0 100px rgba(255,255,0,0.5);"></div>
+        
+        <div class="arena" id="arena"></div>
+        <div id="game-ui">
+            <div id="game-top-right">
+                <div class="btn-flat btn-gray" id="btn-training-shop" style="display:none;" onclick="showModal('modal-shop')">Магазин</div>
+            </div>
+        </div>
+        <div class="joystick-zone" id="joy-left">
+            <div class="joy-knob"></div>
+        </div>
+        <div class="joystick-zone" id="joy-right">
+            <div class="joy-knob"></div>
+        </div>
+    </div>
+
+    <script>
+        const img1 = new Image(); img1.src = "https://i.ibb.co/TDKZK4rz/IMG-1949.jpg";
+        const img2 = new Image(); img2.src = "https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg";
+
+        let data = JSON.parse(localStorage.getItem('pico_data')) || {};
+        if (data.coins === undefined) data.coins = 0;
+        if (data.gems === undefined) data.gems = 0;
+        if (data.popcorn === undefined) data.popcorn = 0;
+        if (data.level === undefined) data.level = 0;
+        if (data.nick === undefined) data.nick = '';
+        if (data.nickClicks === undefined) data.nickClicks = 0;
+        if (data.selectedBrawler === undefined) data.selectedBrawler = 'mito';
+        if (data.unlocked === undefined) data.unlocked = ['mito', 'kiko'];
+        if (data.dailyDay === undefined) data.dailyDay = 1;
+        if (data.lastDailyTimestamp === undefined) data.lastDailyTimestamp = 0;
+        if (data.lastShopTimestamp === undefined) data.lastShopTimestamp = 0;
+        if (data.passLevels === undefined) data.passLevels = [];
+        if (data.passClaimed === undefined) data.passClaimed = [];
+        if (data.codesUsed === undefined) data.codesUsed = {};
+        if (data.shields === undefined) data.shields = 0;
+        if (data.nickChangesCount === undefined) data.nickChangesCount = 0;
+        if (data.nickLockUntil === undefined) data.nickLockUntil = 0;
+        if (data.seasonEnd === undefined) data.seasonEnd = Date.now() + (18 * 24 + 10) * 60 * 60 * 1000;
+        if (data.devBtnHidden === undefined) data.devBtnHidden = false;
+        if (data.lang === undefined) data.lang = 'ru';
+        if (data.noRainbow === undefined) data.noRainbow = false;
+        if (data.joyLeftPos === undefined) data.joyLeftPos = null;
+        if (data.joyRightPos === undefined) data.joyRightPos = null;
+
+        const brawlers = {
+            'mito': { head: '😀', body: '🩻', shorts: '🩳', legs: '🦵🏻🦵🏻', hp: 1000, dmg: 300, name: 'Мито', enName: 'Mito' },
+            'kiko': { head: '😎', body: '🩻', shorts: '🩲', legs: '🦵🦵🏽', hp: 1000, dmg: 300, name: 'Коко', enName: 'Coco' },
+            'ratok': { head: '👿', body: '🩻', shorts: '🩳', legs: '🦿🦿', hp: 1200, dmg: 350, name: 'Раток', enName: 'Ratok' },
+            'utok': { head: '💩', body: '👕', shorts: '🩳', legs: '🦵🦵', hp: 1400, dmg: 250, name: 'Уток', enName: 'Utok' },
+            'shatko': { head: '😏', body: '🎽', shorts: '🩲', legs: '🦿🦵', hp: 1200, dmg: 300, name: 'Шатко', enName: 'Shatko' }
+        };
+
+        const translations = {
+            ru: {
+                chooseNick: "Выбрать ник",
+                seasonText: "1-й сезон",
+                megaSummer: "МАСШТАБНОЕ ЛЕТО!!!",
+                coins: "Монеты: ",
+                gems: "Гемы: ",
+                shop: "🏬 Магазин",
+                brawlers: "😎 Бойцы",
+                daily: "📅 Ежедневные награды",
+                modeShowdown: "Режим: Столкновение",
+                modeTraining: "Режим: Тренировка",
+                modeDuo: "Режим: Двойное столкновение",
+                play: "ИГРАТЬ",
+                settTitle: "Настройки",
+                settLang: "Язык",
+                settRainbow: "Убрать Радужные Шрифты",
+                toggleOn: "ВКЛ",
+                toggleOff: "ВЫКЛ",
+                nickTitle: "Выбрать ник",
+                nickPlaceholder: "твой ник",
+                nickSelectBtn: "Выбрать",
+                nickWarning: "Внимание: ник можно изменить дважды а после чего нужно ждать 14 дней",
+                brawlersTitle: "Бойцы",
+                brawlersSelected: "Выбран",
+                shopTitle: "Магазин",
+                shopShieldTitle: "АКЦИЯ: СУПЕР-ЩИТ!",
+                shopShieldDesc: "Снижает урон на 50%! При смертельном уроне ломается и даёт +400 XP спасения!<br>Осталось: <span id=\"shop-shields-count\" style=\"font-weight:bold; color:blue;\">0</span> раунд(ов)",
+                shopShieldCost: "598 монет",
+                shopGiftTitle: "ПОДАРОК ДНЯ!",
+                shopGiftAmt: "🪙 7 монет",
+                shopGiftClaim: "Claim",
+                shopGiftClaimed: "Забрано",
+                shopAuthorCode: "Код автора",
+                shopActivate: "Активировать",
+                dailyTitle: "Ежедневные награды",
+                dailyDay1: "1 день: 7 монет",
+                dailyDay2: "2 день: 15 попкорнов",
+                dailyDay3: "3 день: 5 гемов",
+                dailyDay4: "4 день: 60 попкорнов",
+                dailyDay5: "5 день: 100 монет",
+                dailyClaim: "Забрать",
+                dailyClaimed: "Забрано",
+                codeTitle: "Активируйте код",
+                codeBtn: "Активировать",
+                secretTitle: "Магазин бойцов",
+                secretBought: "Куплено",
+                secretBuyGems: "Купить за 299 гемов",
+                secretBuyCoins: "Купить за 599 монет",
+                secretBuyShatko: "Купить за 499 гемов",
+                ratokDesc: "Он был начальником в школе но потом решил оттуда свалить.",
+                utokDesc: "Он пошёл в какой то портал и случайно превратился в скин с какашками.",
+                shatkoDesc: "Этот парень всегда любил купаться в бассейне даже когда был осень и весна.",
+                trainingShopBtn: "Магазин",
+                passGotoCurr: "На текущий уровень",
+                passGotoLast: "На последний уровень"
+            },
+            en: {
+                chooseNick: "Choose Nick",
+                seasonText: "1st Season",
+                megaSummer: "MEGA SUMMER!!!",
+                coins: "Coins: ",
+                gems: "Gems: ",
+                shop: "🏬 Shop",
+                brawlers: "😎 Brawlers",
+                daily: "📅 Daily Rewards",
+                modeShowdown: "Mode: Showdown",
+                modeTraining: "Mode: Training",
+                modeDuo: "Mode: Duo Showdown",
+                play: "PLAY",
+                settTitle: "Settings",
+                settLang: "Language",
+                settRainbow: "Remove Rainbow Fonts",
+                toggleOn: "ON",
+                toggleOff: "OFF",
+                nickTitle: "Choose Nick",
+                nickPlaceholder: "your nick",
+                nickSelectBtn: "Select",
+                nickWarning: "Warning: nickname can be changed twice, after which you must wait 14 days",
+                brawlersTitle: "Brawlers",
+                brawlersSelected: "Selected",
+                shopTitle: "Shop",
+                shopShieldTitle: "PROMO: SUPER SHIELD!",
+                shopShieldDesc: "Reduces damage by 50%! Breaks on fatal damage and grants +400 emergency XP!<br>Left: <span id=\"shop-shields-count\" style=\"font-weight:bold; color:blue;\">0</span> round(s)",
+                shopShieldCost: "598 coins",
+                shopGiftTitle: "DAILY GIFT!",
+                shopGiftAmt: "🪙 7 coins",
+                shopGiftClaim: "Claim",
+                shopGiftClaimed: "Claimed",
+                shopAuthorCode: "Creator Code",
+                shopActivate: "Activate",
+                dailyTitle: "Daily Rewards",
+                dailyDay1: "Day 1: 7 coins",
+                dailyDay2: "Day 2: 15 popcorns",
+                dailyDay3: "Day 3: 5 gems",
+                dailyDay4: "Day 4: 60 popcorns",
+                dailyDay5: "Day 5: 100 coins",
+                dailyClaim: "Claim",
+                dailyClaimed: "Claimed",
+                codeTitle: "Activate Code",
+                codeBtn: "Activate",
+                secretTitle: "Brawler Shop",
+                secretBought: "Purchased",
+                secretBuyGems: "Buy for 299 gems",
+                secretBuyCoins: "Buy for 599 coins",
+                secretBuyShatko: "Buy for 499 gems",
+                ratokDesc: "He was a principal at school but then decided to get out of there.",
+                utokDesc: "He stepped into some portal and accidentally turned into a poop skin.",
+                shatkoDesc: "This guy always loved swimming in the pool even when it was autumn and spring.",
+                trainingShopBtn: "Shop",
+                passGotoCurr: "Go to Current Level",
+                passGotoLast: "Go to Last Level"
+            },
+            de: {
+                chooseNick: "Spitzname wählen",
+                seasonText: "Saison 1",
+                megaSummer: "MASSIVER SOMMER!!!",
+                coins: "Münzen: ",
+                gems: "Juwelen: ",
+                shop: "🏬 Shop",
+                brawlers: "😎 Brawler",
+                daily: "📅 Tägliche Belohnungen",
+                modeShowdown: "Modus: Showdown",
+                modeTraining: "Modus: Training",
+                modeDuo: "Modus: Duo-Showdown",
+                play: "SPIELEN",
+                settTitle: "Einstellungen",
+                settLang: "Sprache",
+                settRainbow: "Regenbogenschriften entfernen",
+                toggleOn: "AN",
+                toggleOff: "AUS",
+                nickTitle: "Spitzname wählen",
+                nickPlaceholder: "dein Spitzname",
+                nickSelectBtn: "Wählen",
+                nickWarning: "Achtung: Der Spitzname kann zweimal geändert werden, danach müssen Sie 14 Tage warten",
+                brawlersTitle: "Brawler",
+                brawlersSelected: "Ausgewählt",
+                shopTitle: "Shop",
+                shopShieldTitle: "AKTION: SUPERSCHILD!",
+                shopShieldDesc: "Reduziert den Schaden um 50%! Bricht bei fatalem Schaden und gewährt +400 Rettungs-XP!<br>Verbleibend: <span id=\"shop-shields-count\" style=\"font-weight:bold; color:blue;\">0</span> Runde(n)",
+                shopShieldCost: "598 Münzen",
+                shopGiftTitle: "TÄGLICHES GESCHENK!",
+                shopGiftAmt: "🪙 7 Münzen",
+                shopGiftClaim: "Sammeln",
+                shopGiftClaimed: "Gesammelt",
+                shopAuthorCode: "Autorencode",
+                shopActivate: "Aktivieren",
+                dailyTitle: "Tägliche Belohnungen",
+                dailyDay1: "Tag 1: 7 Münzen",
+                dailyDay2: "Tag 2: 15 Popcorn",
+                dailyDay3: "Tag 3: 5 Juwelen",
+                dailyDay4: "Tag 4: 60 Popcorn",
+                dailyDay5: "Tag 5: 100 Münzen",
+                dailyClaim: "Sammeln",
+                dailyClaimed: "Gesammelt",
+                codeTitle: "Code aktivieren",
+                codeBtn: "Aktivieren",
+                secretTitle: "Brawler-Shop",
+                secretBought: "Gekauft",
+                secretBuyGems: "Kaufen für 299 Juwelen",
+                secretBuyCoins: "Kaufen für 599 Münzen",
+                secretBuyShatko: "Kaufen für 499 Juwelen",
+                ratokDesc: "Er war Direktor an einer Schule, beschloss aber dann, von dort zu verschwinden.",
+                utokDesc: "Er betrat ein Portal und verwandelte sich versehentlich in einen Poop-Skin.",
+                shatkoDesc: "Dieser Typ liebte es immer, im Pool zu schwimmen, selbst im Herbst und Frühling.",
+                trainingShopBtn: "Shop",
+                passGotoCurr: "Zum aktuellen Level",
+                passGotoLast: "Zum letzten Level"
+            },
+            uk: {
+                chooseNick: "Обрати нік",
+                seasonText: "1-й сезон",
+                megaSummer: "МАСШТАБНЕ ЛІТО!!!",
+                coins: "Монети: ",
+                gems: "Геми: ",
+                shop: "🏬 Магазин",
+                brawlers: "😎 Бійці",
+                daily: "📅 Щоденні нагороди",
+                modeShowdown: "Режим: Зіткнення",
+                modeTraining: "Режим: Тренування",
+                modeDuo: "Режим: Подвійне зіткнення",
+                play: "ГРАТИ",
+                settTitle: "Налаштування",
+                settLang: "Мова",
+                settRainbow: "Прибрати веселкові шрифти",
+                toggleOn: "УВІМК",
+                toggleOff: "ВИМК",
+                nickTitle: "Обрати нік",
+                nickPlaceholder: "твій нік",
+                nickSelectBtn: "Обрати",
+                nickWarning: "Увага: нік можна змінити двічі, після чого потрібно чекати 14 днів",
+                brawlersTitle: "Бійці",
+                brawlersSelected: "Обрано",
+                shopTitle: "Магазин",
+                shopShieldTitle: "АКЦІЯ: СУПЕР-ЩИТ!",
+                shopShieldDesc: "Знижує шкоду на 50%! При смертельній шкоді ламається і дає +400 XP порятунку!<br>Залишилось: <span id=\"shop-shields-count\" style=\"font-weight:bold; color:blue;\">0</span> раунд(ов)",
+                shopShieldCost: "598 монет",
+                shopGiftTitle: "ПОДАРУНОК ДНЯ!",
+                shopGiftAmt: "🪙 7 монет",
+                shopGiftClaim: "Забрати",
+                shopGiftClaimed: "Забрано",
+                shopAuthorCode: "Код автора",
+                shopActivate: "Активувати",
+                dailyTitle: "Щоденні нагороди",
+                dailyDay1: "1 день: 7 монет",
+                dailyDay2: "2 день: 15 попкорнів",
+                dailyDay3: "3 день: 5 гемів",
+                dailyDay4: "4 день: 60 попкорнів",
+                dailyDay5: "5 день: 100 монет",
+                dailyClaim: "Забрати",
+                dailyClaimed: "Забрано",
+                codeTitle: "Активуйте код",
+                codeBtn: "Активувати",
+                secretTitle: "Магазин бійців",
+                secretBought: "Куплено",
+                secretBuyGems: "Купити за 299 гемів",
+                secretBuyCoins: "Купити за 599 монет",
+                secretBuyShatko: "Купити за 499 гемів",
+                ratokDesc: "Він був директором у школі, але потім вирішив звідти звалити.",
+                utokDesc: "Він увійшов у якийсь портал і випадково перетворився на скін з какашками.",
+                shatkoDesc: "Цей хлопець завжди любив купатися в басейні, навіть коли була осінь та весна.",
+                trainingShopBtn: "Магазин",
+                passGotoCurr: "На поточний рівень",
+                passGotoLast: "На останній рівень"
+            }
+        };
+
+        let mode = 'showdown';
+        let gameLoop;
+        let isPlaying = false;
+        let flyingPoops = [];
+
+        function saveData() {
+            localStorage.setItem('pico_data', JSON.stringify(data));
+            updateMenuUI();
+        }
+
+        function getMskDate() {
+            return new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+        }
+
+        function getTimeToTomorrowStr() {
+            let now = getMskDate();
+            let tomorrow = new Date(now);
+            tomorrow.setHours(24,0,0,0);
+            let diff = tomorrow - now;
+            let h = Math.floor(diff / (1000*60*60));
+            let m = Math.floor((diff % (1000*60*60)) / (1000*60));
+            return `${h} ч. ${m} м.`;
+        }
+
+        function changeLanguage(langCode) {
+            data.lang = langCode;
+            saveData();
+        }
+
+        function toggleRainbowSetting() {
+            data.noRainbow = !data.noRainbow;
+            saveData();
+        }
+
+        // Перетаскивание джойстиков на сенсорных экранах
+        function makeElementDraggable(el) {
+            let startX, startY, initialLeft, initialTop;
+            
+            el.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                const rect = el.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+            }, { passive: true });
+            
+            el.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 0) return;
+                const touch = e.touches[0];
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+                let newLeft = initialLeft + dx;
+                let newTop = initialTop + dy;
+                
+                newLeft = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, newLeft));
+                newTop = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, newTop));
+                
+                el.style.left = newLeft + 'px';
+                el.style.top = newTop + 'px';
+                el.style.bottom = 'auto';
+                el.style.right = 'auto';
+            }, { passive: true });
+        }
+
+        function openControlsCustomizer() {
+            document.getElementById('modal-controls').style.display = 'block';
+            let jl = document.getElementById('cust-joy-left');
+            let jr = document.getElementById('cust-joy-right');
+            
+            if (data.joyLeftPos) {
+                jl.style.left = data.joyLeftPos.xPct + '%';
+                jl.style.top = data.joyLeftPos.yPct + '%';
+                jl.style.bottom = 'auto';
+                jl.style.right = 'auto';
+            } else {
+                jl.style.left = '10%';
+                jl.style.top = '70%';
+                jl.style.bottom = 'auto';
+                jl.style.right = 'auto';
+            }
+            
+            if (data.joyRightPos) {
+                jr.style.left = data.joyRightPos.xPct + '%';
+                jr.style.top = data.joyRightPos.yPct + '%';
+                jr.style.bottom = 'auto';
+                jr.style.right = 'auto';
+            } else {
+                jr.style.left = '70%';
+                jr.style.top = '70%';
+                jr.style.bottom = 'auto';
+                jr.style.right = 'auto';
+            }
+        }
+
+        function saveCustomControls() {
+            let jl = document.getElementById('cust-joy-left');
+            let jr = document.getElementById('cust-joy-right');
+            
+            let jlRect = jl.getBoundingClientRect();
+            let jrRect = jr.getBoundingClientRect();
+            
+            data.joyLeftPos = {
+                xPct: (jlRect.left / window.innerWidth) * 100,
+                yPct: (jlRect.top / window.innerHeight) * 100
+            };
+            data.joyRightPos = {
+                xPct: (jrRect.left / window.innerWidth) * 100,
+                yPct: (jrRect.top / window.innerHeight) * 100
+            };
+            
+            saveData();
+            applyControlsPositions();
+            
+            document.getElementById('modal-controls').style.display = 'none';
+            hideModal('modal-settings');
+        }
+
+        function applyControlsPositions() {
+            let jlReal = document.getElementById('joy-left');
+            let jrReal = document.getElementById('joy-right');
+            
+            if (data.joyLeftPos) {
+                jlReal.style.left = data.joyLeftPos.xPct + '%';
+                jlReal.style.top = data.joyLeftPos.yPct + '%';
+                jlReal.style.bottom = 'auto';
+                jlReal.style.right = 'auto';
+            } else {
+                jlReal.style.left = '30px';
+                jlReal.style.bottom = '30px';
+                jlReal.style.top = 'auto';
+                jlReal.style.right = 'auto';
+            }
+            
+            if (data.joyRightPos) {
+                jrReal.style.left = data.joyRightPos.xPct + '%';
+                jrReal.style.top = data.joyRightPos.yPct + '%';
+                jrReal.style.bottom = 'auto';
+                jrReal.style.right = 'auto';
+            } else {
+                jrReal.style.right = '30px';
+                jrReal.style.bottom = '30px';
+                jrReal.style.left = 'auto';
+                jrReal.style.top = 'auto';
+            }
+        }
+
+        setInterval(() => {
+            let shopTimerEl = document.getElementById('shop-timer');
+            if (shopTimerEl) shopTimerEl.innerText = getTimeToTomorrowStr();
+            
+            let isDev = data.nick === "👑 ПАСХАЛКА 👑";
+            if (isDev && !data.unlocked.includes('shatko')) {
+                data.unlocked.push('shatko');
+                saveData();
+            }
+
+            let seasonDiff = data.seasonEnd - Date.now();
+            if (seasonDiff <= 0) {
+                data.seasonEnd = Date.now() + (18 * 24 + 10) * 60 * 60 * 1000;
+                seasonDiff = data.seasonEnd - Date.now();
+                saveData();
+            }
+            let sd = Math.floor(seasonDiff / (1000 * 60 * 60 * 24));
+            let sh = Math.floor((seasonDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            let seasonTimerEl = document.getElementById('season-timer');
+            if (seasonTimerEl) seasonTimerEl.innerText = `${sd} ${data.lang === 'ru' ? 'д.' : 'd.'} ${sh} ${data.lang === 'ru' ? 'ч.' : 'h.'}`;
+
+            if (data.nickLockUntil && data.nickLockUntil > Date.now()) {
+                let nickDiff = data.nickLockUntil - Date.now();
+                let nd = Math.floor(nickDiff / (1000 * 60 * 60 * 24));
+                let nh = Math.floor((nickDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                let btnNick = document.getElementById('btn-nick');
+                btnNick.className = 'btn-flat btn-gray';
+                btnNick.innerText = `${nd} ${data.lang === 'ru' ? 'д.' : 'd.'} ${nh} ${data.lang === 'ru' ? 'ч.' : 'h.'}`;
+                btnNick.style.pointerEvents = 'none';
+            } else {
+                let btnNick = document.getElementById('btn-nick');
+                if (btnNick && btnNick.style.pointerEvents === 'none') {
+                    data.nickLockUntil = 0;
+                    data.nickChangesCount = 0;
+                    btnNick.style.pointerEvents = 'auto';
+                    saveData();
+                }
+            }
+            
+            let now = getMskDate();
+            let todayStr = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate();
+            let t = translations[data.lang || 'ru'];
+            
+            let btnClaimDailyEl = document.getElementById('btn-claim-daily');
+            let dailyTimerEl = document.getElementById('daily-timer');
+            if(data.lastDailyTimestamp === todayStr) {
+                if(btnClaimDailyEl) {
+                    btnClaimDailyEl.style.background = '#888';
+                    btnClaimDailyEl.innerText = t.dailyClaimed;
+                }
+                if(dailyTimerEl) dailyTimerEl.innerText = getTimeToTomorrowStr();
+            } else {
+                if(btnClaimDailyEl) {
+                    btnClaimDailyEl.style.background = '#005500';
+                    btnClaimDailyEl.innerText = t.dailyClaim;
+                }
+                if(dailyTimerEl) dailyTimerEl.innerText = '';
+            }
+
+            let btnClaimShopEl = document.getElementById('btn-claim-shop');
+            if(data.lastShopTimestamp === todayStr) {
+                if(btnClaimShopEl) {
+                    btnClaimShopEl.style.background = '#888';
+                    btnClaimShopEl.innerText = t.shopGiftClaimed;
+                }
+            } else {
+                if(btnClaimShopEl) {
+                    btnClaimShopEl.style.background = '#00aa00';
+                    btnClaimShopEl.innerText = t.shopGiftClaim;
+                }
+            }
+
+        }, 1000);
+
+        async function runLoading() {
+            const pb = document.getElementById('progress-bar');
+            const pt = document.getElementById('progress-text');
+            const sc = document.getElementById('server-connect');
+            
+            const wait = (ms) => new Promise(r => setTimeout(r, ms));
+            
+            await wait(1500);
+            pb.style.width = '25%'; pt.innerText = '25%';
+            await wait(1000);
+            pb.style.width = '65%'; pt.innerText = '65%';
+            await wait(800);
+            pb.style.width = '100%'; pt.innerText = '100%';
+            await wait(500);
+            sc.style.display = 'block';
+            await wait(1000);
+            
+            document.getElementById('loading').classList.remove('active-screen');
+            document.getElementById('menu').classList.add('active-screen');
+            updateMenuUI();
+            generatePass();
+            
+            makeElementDraggable(document.getElementById('cust-joy-left'));
+            makeElementDraggable(document.getElementById('cust-joy-right'));
+            applyControlsPositions();
+        }
+
+        function updateSecretShop() {
+            let container = document.getElementById('secret-shop-container');
+            if (!container) return;
+            
+            let t = translations[data.lang || 'ru'];
+            
+            let ratokBtnHtml = data.unlocked.includes('ratok') 
+                ? `<div class="btn-flat btn-gray" style="color:#fff;">${t.secretBought}</div>` 
+                : `<div class="btn-flat btn-green" onclick="buyBrawler('ratok', 299, 'gems')" style="color:#000;">${t.secretBuyGems}</div>`;
+                
+            let utokBtnHtml = data.unlocked.includes('utok') 
+                ? `<div class="btn-flat btn-gray" style="color:#fff;">${t.secretBought}</div>` 
+                : `<div class="btn-flat btn-green" onclick="buyBrawler('utok', 599, 'coins')" style="color:#000;">${t.secretBuyCoins}</div>`;
+            
+            let shatkoBtnHtml = data.unlocked.includes('shatko')
+                ? `<div class="btn-flat btn-gray" style="color:#fff;">${t.secretBought}</div>`
+                : `<div class="btn-flat btn-green" onclick="buyBrawler('shatko', 499, 'gems')" style="color:#000;">${t.secretBuyShatko}</div>`;
+                
+            container.innerHTML = `
+                <div style="border: 2px solid #fff; padding: 10px; width: 45%; min-width: 200px;">
+                    <h3 style="color:white;">${data.lang === 'ru' ? brawlers['ratok'].name : brawlers['ratok'].enName}</h3>
+                    <div style="font-size: 40px; text-align:center; line-height: 1;" class="skin-wrapper">
+                        <div>👿</div><div>🩻</div><div>🩳</div><div>🦿🦿</div>
+                    </div>
+                    <p style="font-size:12px; margin: 10px 0;">${t.ratokDesc}</p>
+                    ${ratokBtnHtml}
+                </div>
+                <div style="border: 2px solid #fff; padding: 10px; width: 45%; min-width: 200px;">
+                    <h3>${data.lang === 'ru' ? brawlers['utok'].name : brawlers['utok'].enName}</h3>
+                    <div style="font-size: 40px; text-align:center; line-height: 1;" class="skin-wrapper">
+                        <div>💩</div><div>👕</div><div>🩳</div><div>🦵🦵</div>
+                    </div>
+                    <p style="font-size:12px; margin: 10px 0;">${t.utokDesc}</p>
+                    ${utokBtnHtml}
+                </div>
+                <div style="border: 2px solid #fff; padding: 10px; width: 45%; min-width: 200px;">
+                    <h3 style="color:white;">${data.lang === 'ru' ? brawlers['shatko'].name : brawlers['shatko'].enName}</h3>
+                    <div style="font-size: 40px; text-align:center; line-height: 1;" class="skin-wrapper">
+                        <div>😏</div><div>🎽</div><div>🩲</div><div>🦿🦵</div>
+                    </div>
+                    <p style="font-size:12px; margin: 10px 0;">${t.shatkoDesc}</p>
+                    ${shatkoBtnHtml}
+                </div>
+            `;
+        }
+
+        function updateModeBtnText() {
+            let t = translations[data.lang || 'ru'];
+            let modeBtn = document.getElementById('btn-mode');
+            if (!modeBtn) return;
+            if(mode === 'showdown') { modeBtn.innerHTML = t.modeShowdown + '<br><small></small>'; }
+            else if(mode === 'training') { modeBtn.innerHTML = t.modeTraining + '<br><small></small>'; }
+            else if(mode === 'duo') { modeBtn.innerHTML = t.modeDuo + '<br><small></small>'; }
+        }
+
+        function updateMenuUI() {
+            let t = translations[data.lang || 'ru'];
+
+            if (data.noRainbow) {
+                document.body.classList.add('no-rainbow');
+            } else {
+                document.body.classList.remove('no-rainbow');
+            }
+
+            // Фикс бага радужных шрифтов для Сезона и Pass
+            let seasonTitleEl = document.getElementById('ui-season-title');
+            let passBtnEl = document.getElementById('btn-pass');
+            if (seasonTitleEl && passBtnEl) {
+                if (!data.noRainbow) {
+                    // Если убрать радугу = ВЫКЛ (они радужные)
+                    seasonTitleEl.style.animation = '';
+                    seasonTitleEl.style.color = '';
+                    passBtnEl.style.animation = '';
+                    passBtnEl.style.color = '';
+                } else {
+                    // Если убрать радугу = ВКЛ (сезон черный, пасс белый)
+                    seasonTitleEl.style.animation = 'none';
+                    seasonTitleEl.style.color = '#000';
+                    passBtnEl.style.animation = 'none';
+                    passBtnEl.style.color = '#fff';
+                }
+            }
+
+            let toggleRainbowBtn = document.getElementById('btn-toggle-rainbow');
+            if(toggleRainbowBtn) {
+                toggleRainbowBtn.innerText = data.noRainbow ? t.toggleOn : t.toggleOff;
+                toggleRainbowBtn.className = data.noRainbow ? 'btn-flat btn-green' : 'btn-flat btn-red';
+            }
+
+            let selectLang = document.getElementById('setting-lang');
+            if(selectLang) selectLang.value = data.lang;
+
+            document.getElementById('ui-coins').innerText = data.coins;
+            document.getElementById('ui-gems').innerText = data.gems;
+            document.getElementById('ui-coins-lbl').childNodes[0].textContent = t.coins;
+            document.getElementById('ui-gems-lbl').childNodes[0].textContent = t.gems;
+            
+            document.getElementById('ui-season-num-text').innerText = t.seasonText;
+            document.getElementById('ui-season-title').innerText = t.megaSummer;
+            
+            document.getElementById('btn-menu-shop').innerText = t.shop;
+            document.getElementById('btn-menu-brawlers').innerText = t.brawlers;
+            document.getElementById('btn-menu-daily').innerText = t.daily;
+            document.getElementById('btn-play-text').innerText = t.play;
+
+            document.getElementById('sett-title').innerText = t.settTitle;
+            document.getElementById('sett-lang-title').innerText = t.settLang;
+            document.getElementById('sett-rainbow-title').innerText = t.settRainbow;
+
+            document.getElementById('nick-modal-title').innerText = t.nickTitle;
+            document.getElementById('nick-input').placeholder = t.nickPlaceholder;
+            document.getElementById('nick-select-btn').innerText = t.nickSelectBtn;
+            document.getElementById('nick-warning-lbl').innerText = t.nickWarning;
+
+            document.getElementById('brawlers-modal-title').innerText = t.brawlersTitle;
+
+            document.getElementById('shop-modal-title').innerText = t.shopTitle;
+            document.getElementById('shop-shield-heading').innerText = t.shopShieldTitle;
+            document.getElementById('shop-shield-desc-lbl').innerHTML = t.shopShieldDesc;
+            document.getElementById('shop-shield-btn-lbl').innerText = t.shopShieldCost;
+            document.getElementById('shop-gift-heading').innerText = t.shopGiftTitle;
+            document.getElementById('shop-gift-amt-lbl').innerText = t.shopGiftAmt;
+
+            document.getElementById('daily-modal-title').innerText = t.dailyTitle;
+            document.getElementById('daily-d1').innerText = t.dailyDay1;
+            document.getElementById('daily-d2').innerText = t.dailyDay2;
+            document.getElementById('daily-d3').innerText = t.dailyDay3;
+            document.getElementById('daily-d4').innerText = t.dailyDay4;
+            document.getElementById('daily-d5').innerText = t.dailyDay5;
+            document.getElementById('btn-claim-daily').innerText = t.dailyClaim;
+
+            document.getElementById('pass-goto-curr-btn').innerText = t.passGotoCurr;
+            document.getElementById('pass-goto-last-btn').innerText = t.passGotoLast;
+            
+            document.getElementById('code-modal-title').innerText = t.codeTitle;
+            document.getElementById('code-modal-btn').innerText = t.codeBtn;
+
+            document.getElementById('secret-modal-title').innerText = t.secretTitle;
+            
+            let currentShieldsEl = document.getElementById('shop-shields-count');
+            if(currentShieldsEl) currentShieldsEl.innerText = data.shields;
+
+            // Обновление баланса попкорна в меню ивентов
+            let popcornCountEl = document.getElementById('events-popcorn-count');
+            if (popcornCountEl) popcornCountEl.innerText = `${data.popcorn} 🍿`;
+
+            // Состояние кнопки покупки Шатко за попкорн
+            let buyShatkoPopBtn = document.getElementById('btn-buy-shatko-popcorn');
+            if (buyShatkoPopBtn) {
+                if (data.unlocked.includes('shatko')) {
+                    buyShatkoPopBtn.innerText = t.secretBought || "КУПЛЕНО";
+                    buyShatkoPopBtn.style.background = "#888";
+                } else {
+                    buyShatkoPopBtn.innerText = "КУПИТЬ ЗА 169 🍿";
+                    buyShatkoPopBtn.style.background = "#ff0000";
+                }
+            }
+            
+            let b = brawlers[data.selectedBrawler];
+            document.getElementById('menu-character').innerHTML = `
+                <div class="skin-wrapper">
+                    <div>${b.head}</div>
+                    <div>${b.body}</div>
+                    <div>${b.shorts || ''}</div>
+                    <div>${b.legs}</div>
+                </div>
+            `;
+            
+            let btnNick = document.getElementById('btn-nick');
+            let isDev = data.nick === "👑 ПАСХАЛКА 👑";
+
+            if (data.nickLockUntil && data.nickLockUntil > Date.now()) {
+                let nickDiff = data.nickLockUntil - Date.now();
+                let nd = Math.floor(nickDiff / (1000 * 60 * 60 * 24));
+                let nh = Math.floor((nickDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                btnNick.className = 'btn-flat btn-gray';
+                btnNick.innerText = `${nd} ${data.lang === 'ru' ? 'д.' : 'd.'} ${nh} ${data.lang === 'ru' ? 'ч.' : 'h.'}`;
+                btnNick.style.pointerEvents = 'none';
+            } else {
+                btnNick.innerText = data.nick || t.chooseNick;
+                btnNick.className = 'btn-flat btn-blue';
+                btnNick.style.pointerEvents = 'auto';
+                if(data.nickClicks >= 3 && data.nick) {
+                    btnNick.classList.add('rainbow-text');
+                }
+            }
+
+            let devBtnBox = document.getElementById('dev-level-btn-container');
+            if (isDev && !data.devBtnHidden) {
+                devBtnBox.style.display = 'block';
+            } else {
+                devBtnBox.style.display = 'none';
+            }
+
+            updateModeBtnText();
+            updateSecretShop();
+            applyControlsPositions();
+        }
+
+        function submitDevLevel() {
+            let val = parseInt(document.getElementById('dev-level-input').value);
+            if (!isNaN(val) && val >= 0) {
+                data.level = val;
+                data.devBtnHidden = true;
+                saveData();
+                generatePass();
+                hideModal('modal-dev-level');
+                alert(data.lang === 'ru' ? "Уровень успешно изменен! Кнопка скрыта." : "Level successfully changed! Button hidden.");
+            }
+        }
+
+        function openBrawlersModal() {
+            let container = document.getElementById('brawlers-container');
+            container.innerHTML = '';
+            let t = translations[data.lang || 'ru'];
+            
+            data.unlocked.forEach(id => {
+                let b = brawlers[id];
+                if(!b) return;
+                
+                let card = document.createElement('div');
+                card.className = 'btn-flat';
+                card.style.textAlign = 'center';
+                card.style.minWidth = '140px';
+                
+                let isSelected = data.selectedBrawler === id;
+                let btnClass = id === 'mito' ? 'btn-red' : id === 'kiko' ? 'btn-blue' : id === 'ratok' ? 'btn-gray' : id === 'shatko' ? 'rainbow-bg' : 'btn-yellow';
+                if (isSelected) btnClass = 'btn-green';
+
+                card.innerHTML = `
+                    <div style="font-size: 50px; line-height: 1;" class="skin-wrapper">
+                        <div>${b.head}</div><div>${b.body}</div><div>${b.shorts || ''}</div><div>${b.legs}</div>
+                    </div>
+                    <div style="margin-top:10px;" class="btn-flat ${btnClass}" onclick="selectBrawler('${id}')">
+                        ${isSelected ? t.brawlersSelected : (data.lang === 'ru' ? b.name : b.enName)}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            showModal('modal-brawlers');
+        }
+
+        function buyShield() {
+            if(data.coins >= 598) {
+                data.coins -= 598;
+                data.shields += 4;
+                saveData();
+                alert(data.lang === 'ru' ? "Супер-щит успешно куплен на 4 раунда!" : "Super shield purchased for 4 rounds!");
+            } else {
+                alert(data.lang === 'ru' ? "Не хватает монет для покупки супер-щита!" : "Not enough coins for the super shield!");
+            }
+        }
+
+        function showModal(id) { 
+            if (id === 'modal-nick' && data.nickLockUntil && data.nickLockUntil > Date.now()) {
+                return;
+            }
+            document.getElementById(id).style.display = 'flex'; 
+        }
+        function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        document.getElementById('btn-nick').onclick = () => {
+            showModal('modal-nick');
+        };
+        
+        function saveNick() {
+            let val = document.getElementById('nick-input').value.trim();
+            if(val) { 
+                if(val === "developer194746382;&:₹/?,&2104817/.!3'zlqksj:'+*****") {
+                    data.coins = 99999;
+                    data.gems = 99999;
+                    data.popcorn = 99999; // Код разработчика выдает попкорн
+                    if(!data.unlocked.includes('ratok')) data.unlocked.push('ratok');
+                    if(!data.unlocked.includes('utok')) data.unlocked.push('utok');
+                    if(!data.unlocked.includes('shatko')) data.unlocked.push('shatko');
+
+                    data.nick = "👑 ПАСХАЛКА 👑";
+                    data.devBtnHidden = false;
+                    saveData();
+                    alert("✨ СЕКРЕТНЫЙ КОД АКТИВИРОВАН!");
+                    hideModal('modal-nick');
+                    return;
+                }
+
+                data.nick = val; 
+                data.nickClicks = 0;
+                data.nickChangesCount++;
+                
+                if (data.nickChangesCount >= 2) {
+                    data.nickLockUntil = Date.now() + 14 * 24 * 60 * 60 * 1000;
+                }
+
+                saveData(); 
+                hideModal('modal-nick'); 
+            }
+        }
+
+        function selectBrawler(id) {
+            data.selectedBrawler = id;
+            saveData();
+            hideModal('modal-brawlers');
+        }
+        
+        function buyBrawler(id, price, currency) {
+            let t = translations[data.lang || 'ru'];
+            if(data.unlocked.includes(id)) return;
+            if(data[currency] >= price) {
+                data[currency] -= price;
+                data.unlocked.push(id);
+                saveData();
+                alert(data.lang === 'ru' ? `Поздравляем! Боец ${brawlers[id].name} разблокирован!` : `Congratulations! Brawler ${brawlers[id].enName} unlocked!`);
+            } else {
+                alert(data.lang === 'ru' ? 'Не хватает ' + (currency === 'coins' ? 'монет!' : 'гемов!') : 'Not enough ' + (currency === 'coins' ? 'coins!' : 'gems!'));
+            }
+        }
+
+        // Функция покупки Шатко за попкорн
+        function buyShatkoPopcorn() {
+            if (data.unlocked.includes('shatko')) {
+                alert(data.lang === 'ru' ? "Уже куплено!" : "Already purchased!");
+                return;
+            }
+            if (data.popcorn >= 169) {
+                data.popcorn -= 169;
+                data.unlocked.push('shatko');
+                saveData();
+                alert(data.lang === 'ru' ? "Шатко успешно разблокирован за попкорны! 😏" : "Shatko successfully unlocked for popcorns! 😏");
+            } else {
+                alert(data.lang === 'ru' ? "Не хватает попкорнов!" : "Not enough popcorns!");
+            }
+        }
+        
+        function activateCode() {
+            let inputField = document.getElementById('code-input');
+            let code = inputField.value.toLowerCase();
+
+            if (data.codesUsed[code]) {
+                alert(data.lang === 'ru' ? 'Уже активирован!' : 'Already activated!');
+                return;
+            }
+
+            let success = false;
+            let message = '';
+
+            if (code === 'developer') {
+                data.gems += 25;
+                success = true;
+                message = '+25 гемов!';
+            } else if (code === 'rypto') {
+                data.coins += 100;
+                success = true;
+                message = '+100 монет!';
+            } else if (code === 'voco') {
+                data.coins += 400;
+                success = true;
+                message = '+400 монет!';
+            } else if (code === 'byerealracing3') {
+                data.gems += 20;
+                success = true;
+                message = '+20 гемов!';
+            } else {
+                alert(data.lang === 'ru' ? 'Неверный код!' : 'Invalid code!');
+                return;
+            }
+
+            if (success) {
+                data.codesUsed[code] = true;
+                saveData();
+                alert(message);
+                hideModal('modal-code');
+            }
+        }
+
+        function claimShopGift() {
+            let todayStr = getMskDate().getFullYear() + '-' + getMskDate().getMonth() + '-' + getMskDate().getDate();
+            if(data.lastShopTimestamp === todayStr) return;
+            data.coins += 7;
+            data.lastShopTimestamp = todayStr;
+            saveData();
+        }
+
+        // Обновленная логика цикличного подарка дня
+        function claimDaily() {
+            let todayStr = getMskDate().getFullYear() + '-' + getMskDate().getMonth() + '-' + getMskDate().getDate();
+            if(data.lastDailyTimestamp === todayStr) return;
+            
+            if(data.dailyDay === 1) data.coins += 7;
+            if(data.dailyDay === 2) data.popcorn += 15;
+            if(data.dailyDay === 3) data.gems += 5;
+            if(data.dailyDay === 4) data.popcorn += 60;
+            if(data.dailyDay === 5) { data.coins += 100; data.dailyDay = 0; }
+            
+            data.dailyDay++;
+            data.lastDailyTimestamp = todayStr;
+            saveData();
+        }
+
+        // Генерация уровней пасса с шансом выпадения попкорна 🍿
+        function generatePass() {
+            if(data.passLevels.length === 0) {
+                for(let i=1; i<=60; i++) {
+                    let rand = Math.random();
+                    let type = 'coins';
+                    let amount = Math.floor(Math.random()*100)+50;
+                    
+                    if(rand > 0.75) {
+                        type = 'gems';
+                        amount = Math.floor(Math.random()*10)+1;
+                    } else if(rand > 0.45) {
+                        type = 'popcorn';
+                        amount = Math.floor(Math.random()*40)+15;
+                    }
+                    
+                    data.passLevels.push({ type, amount });
+                }
+                saveData();
+            }
+            let c = document.getElementById('pass-container');
+            c.innerHTML = '';
+            data.passLevels.forEach((lvl, i) => {
+                let cube = document.createElement('div');
+                cube.className = 'pass-cube' + (data.passClaimed[i] ? ' claimed' : '');
+                let icon = lvl.type == 'gems' ? '💎' : lvl.type == 'popcorn' ? '🍿' : '🪙';
+                cube.innerHTML = `${i+1}<br>${lvl.amount} ${icon}`;
+                cube.onclick = () => claimPass(i);
+                c.appendChild(cube);
+            });
+        }
+
+        function claimPass(i) {
+            if(data.passClaimed[i] || data.level < i) return;
+            data.passClaimed[i] = true;
+            let lvl = data.passLevels[i];
+            
+            if(lvl.type === 'popcorn') {
+                data.popcorn += lvl.amount;
+            } else {
+                data[lvl.type] += lvl.amount;
+                data.popcorn += 8; // автоматический бонус попкорна при прохождении обычного кубика
+            }
+            
+            saveData(); generatePass();
+        }
+
+        let modeBtn = document.getElementById('btn-mode');
+        modeBtn.onclick = () => {
+            if(mode === 'showdown') { mode = 'training'; }
+            else if(mode === 'training') { mode = 'showdown'; }
+            else { mode = 'showdown'; }
+            updateModeBtnText();
+        };
+        
+        let touchStartY = 0;
+        modeBtn.addEventListener('touchstart', e => { touchStartY = e.changedTouches[0].screenY; });
+        modeBtn.addEventListener('touchend', e => {
+            let dy = e.changedTouches[0].screenY - touchStartY;
+            if(dy < -30) {
+                mode = 'duo';
+                updateModeBtnText();
+            }
+        });
+
+        document.getElementById('btn-pass').onclick = () => showModal('modal-pass');
+        document.getElementById('btn-secret').onclick = () => showModal('modal-secret');
+
+        const arena = document.getElementById('arena');
+        let player = { x: 1000, y: 1000, vx: 0, vy: 0, hp: 1000, maxHp: 1000, el: null, inBush: false, bushTimer: 0, rageFaceTimer: 0, immortalTimer: 0, ratokTriggered: false, shatkoAbilityTriggered: false, shatkoAbilityTimer: 0, mitoAbilityTriggered: false, utokAbilityTriggered: false, speedMultiplier: 1 };
+        let bots = [];
+        let bullets = [];
+        let bushes = [];
+        
+        let joyLeft = { active: false, dx: 0, dy: 0, id: null };
+        let joyRight = { active: false, dx: 0, dy: 0, id: null, lastShoot: 0 };
+
+        function setupJoystick(elId, joyObj) {
+            const zone = document.getElementById(elId);
+            const knob = zone.querySelector('.joy-knob');
+            
+            zone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    let t = e.changedTouches[i];
+                    if(!joyObj.active) {
+                        joyObj.active = true; joyObj.id = t.identifier;
+                        updateJoy(t, zone, knob, joyObj);
+                    }
+                }
+            });
+            zone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    if(e.changedTouches[i].identifier === joyObj.id) {
+                        updateJoy(e.changedTouches[i], zone, knob, joyObj);
+                    }
+                }
+            });
+            const end = e => {
+                for(let i=0; i<e.changedTouches.length; i++) {
+                    if(e.changedTouches[i].identifier === joyObj.id) {
+                        joyObj.active = false; joyObj.id = null;
+                        joyObj.dx = 0; joyObj.dy = 0;
+                        knob.style.transform = `translate(-50%, -50%)`;
+                    }
+                }
+            };
+            zone.addEventListener('touchend', end);
+            zone.addEventListener('touchcancel', end);
+        }
+
+        function updateJoy(touch, zone, knob, joyObj) {
+            const rect = zone.getBoundingClientRect();
+            const cx = rect.left + rect.width/2;
+            const cy = rect.top + rect.height/2;
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
+            const max = rect.width/2;
+            const dist = Math.hypot(dx, dy);
+            
+            if(dist > max) { dx = (dx/dist)*max; dy = (dy/dist)*max; }
+            knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            
+            joyObj.dx = dx / max;
+            joyObj.dy = dy / max;
+        }
+
+        setupJoystick('joy-left', joyLeft);
+        setupJoystick('joy-right', joyRight);
+
+        function createEntity(x, y, headEmo, isBot, hp, nickName) {
+            let el = document.createElement('div');
+            el.className = 'entity';
+            el.innerHTML = `
+                <div style="position:absolute; top:-25px; left:50%; transform:translateX(-50%); color:white; font-size:11px; font-weight:bold; white-space:nowrap; background:rgba(0,0,0,0.6); padding:1px 5px; border:1px solid #000;">${nickName}</div>
+                <div class="hp-bar"><div class="hp-fill"></div></div>
+                <div style="font-size:44px; width:50px; height:50px; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.1); border-radius:50% !important; border:2px dashed rgba(255,255,255,0.3); position:relative;"><span class="emoji-txt">${headEmo}</span></div>
+            `;
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            arena.appendChild(el);
+            return { x, y, el, hp, maxHp: hp, isBot, vx:0, vy:0, lastShootTime: 0, shootCooldown: 4000, frozen: 0, searchBushTarget: null, utokAbilityTriggered: false };
+        }
+
+        function getNearestBush(x, y) {
+            if(bushes.length === 0) return null;
+            let minDst = Infinity, nearest = null;
+            bushes.forEach(b => {
+                let d = Math.hypot(x - b.x, y - b.y);
+                if(d < minDst) { minDst = d; nearest = b; }
+            });
+            return nearest;
+        }
+
+        function spawnFlyingPoop(x, y, vx, vy, shotByPlayer) {
+            let el = document.createElement('div');
+            el.className = 'bullet';
+            el.innerHTML = '💩';
+            el.style.background = 'none';
+            el.style.border = 'none';
+            el.style.fontSize = '30px';
+            el.style.width = '30px';
+            el.style.height = '30px';
+            el.style.display = 'flex';
+            el.style.justifyContent = 'center';
+            el.style.alignItems = 'center';
+            el.style.transform = 'translate(-50%, -50%)';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            arena.appendChild(el);
+            flyingPoops.push({x, y, vx, vy, el, shotByPlayer});
+        }
+
+        function startGame() {
+            document.getElementById('menu').classList.remove('active-screen');
+            document.getElementById('game').classList.add('active-screen');
+            document.getElementById('ratok-overlay').style.display = 'none';
+            document.getElementById('shatko-overlay').style.display = 'none';
+            arena.innerHTML = '';
+            bots = []; bullets = []; bushes = [];
+            
+            flyingPoops.forEach(p => p.el.remove());
+            flyingPoops = [];
+
+            document.getElementById('btn-training-shop').style.display = (mode === 'training') ? 'block' : 'none';
+            document.getElementById('btn-training-shop').innerText = translations[data.lang || 'ru'].trainingShopBtn;
+
+            for(let i=0; i<16; i++) {
+                let b = document.createElement('div');
+                b.className = 'bush';
+                let bx = Math.random()*1700 + 50; 
+                let by = Math.random()*1700 + 50;
+                b.style.left = bx + 'px'; b.style.top = by + 'px';
+                arena.appendChild(b);
+                bushes.push({x: bx+75, y: by+75, r: 85});
+            }
+
+            let bInfo = brawlers[data.selectedBrawler];
+            let displayPlayerName = data.nick || (data.lang === 'ru' ? 'Игрок' : 'Player');
+            player = createEntity(1000, 1000, bInfo.head, false, bInfo.hp, displayPlayerName);
+            player.dmg = bInfo.dmg;
+            player.bushTimer = 0;
+            player.rageFaceTimer = 0;
+            player.immortalTimer = 0;
+            player.ratokTriggered = false;
+            player.shatkoAbilityTriggered = false;
+            player.shatkoAbilityTimer = 0;
+            player.mitoAbilityTriggered = false;
+            player.utokAbilityTriggered = false;
+            player.speedMultiplier = 1;
+            
+            if(data.shields > 0) {
+                let shieldBubble = document.createElement('div');
+                shieldBubble.className = 'shield-bubble';
+                shieldBubble.style.position = 'absolute';
+                shieldBubble.style.top = '50%';
+                shieldBubble.style.left = '50%';
+                shieldBubble.style.transform = 'translate(-50%, -50%)';
+                shieldBubble.style.width = '74px';
+                shieldBubble.style.height = '74px';
+                shieldBubble.style.borderRadius = '50%';
+                shieldBubble.style.border = '4px solid #00c8ff';
+                shieldBubble.style.background = 'rgba(0, 200, 255, 0.25)';
+                shieldBubble.style.boxShadow = '0 0 15px #00c8ff, inset 0 0 10px #00c8ff';
+                shieldBubble.style.pointerEvents = 'none';
+                player.el.querySelector('div:last-child').appendChild(shieldBubble);
+            }
+
+            if(data.selectedBrawler === 'utok') {
+                player.el.onclick = () => {
+                    bots.splice(0, 2).forEach(b=>b.el.remove());
+                };
+            }
+
+            const botNicks = ['LeoNinja', 'Pro_Brawler', 'BrawlKing', 'CyberGamer', 'SniperX', 'ShadowStrike', 'Tornado', 'Phoenix'];
+            let availableSkins = Object.keys(brawlers);
+
+            let totalBots = 3;
+            if (mode === 'training') totalBots = 2;
+            else if (mode === 'duo') totalBots = 5;
+            else if (mode === 'showdown') totalBots = 3;
+
+            for(let i=0; i<totalBots; i++) {
+                let randSkinKey = availableSkins[Math.floor(Math.random() * availableSkins.length)];
+                let randSkin = brawlers[randSkinKey];
+                let randNick = botNicks[Math.floor(Math.random() * botNicks.length)];
+                
+                let bx = Math.random()*1800 + 100;
+                let by = Math.random()*1800 + 100;
+                if(Math.hypot(bx - 1000, by - 1000) < 300) { bx += 400; by += 400; } 
+
+                let botEnt = createEntity(bx, by, randSkin.head, true, randSkin.hp, randNick);
+                botEnt.skin = randSkinKey;
+                botEnt.dmg = randSkin.dmg;
+                botEnt.shootCooldown = 4000; 
+                botEnt.utokAbilityTriggered = false;
+                bots.push(botEnt);
+            }
+
+            applyControlsPositions();
+            isPlaying = true;
+            lastTime = performance.now();
+            requestAnimationFrame(updateGame);
+        }
+
+        let lastTime = 0;
+        function updateGame(time) {
+            if(!isPlaying) return;
+            let dt = (time - lastTime) / 1000;
+            if(dt > 0.1) dt = 0.1;
+            lastTime = time;
+
+            let baseSpeed = (data.selectedBrawler === 'kiko') ? 460 : 400; 
+            let speed = baseSpeed * player.speedMultiplier;
+            player.x += joyLeft.dx * speed * dt;
+            player.y += joyLeft.dy * speed * dt;
+            player.x = Math.max(50, Math.min(1950, player.x));
+            player.y = Math.max(50, Math.min(1950, player.y));
+            
+            player.inBush = bushes.some(b => Math.hypot(player.x - b.x, player.y - b.y) < b.r);
+            player.el.style.opacity = player.inBush ? 0.45 : 1;
+
+            if (player.inBush) {
+                player.bushTimer += dt;
+                if (player.bushTimer >= 3) {
+                    player.hp = Math.min(player.maxHp, player.hp + 30);
+                    player.bushTimer = 0;
+                }
+            } else {
+                player.bushTimer = 0;
+            }
+
+            if(player.rageFaceTimer > 0) {
+                player.rageFaceTimer -= dt;
+                if(player.rageFaceTimer <= 0) {
+                    let faceSpan = player.el.querySelector('.emoji-txt');
+                    if(faceSpan) faceSpan.innerText = brawlers[data.selectedBrawler].head;
+                }
+            }
+
+            if(player.immortalTimer > 0) {
+                player.immortalTimer -= dt;
+                if(player.immortalTimer <= 0) {
+                    document.getElementById('ratok-overlay').style.display = 'none';
+                    let faceSpan = player.el.querySelector('.emoji-txt');
+                    if(faceSpan) faceSpan.innerText = brawlers[data.selectedBrawler].head;
+                }
+            }
+
+            if (player.shatkoAbilityTimer > 0) {
+                player.shatkoAbilityTimer -= dt;
+                if (player.shatkoAbilityTimer <= 0) {
+                    document.getElementById('shatko-overlay').style.display = 'none';
+                }
+            }
+
+            // Способность Мито при <= 520 XP (ускорение в 2 раза и самолечение 30%)
+            if (data.selectedBrawler === 'mito' && player.hp <= 520 && !player.mitoAbilityTriggered && player.hp > 0) {
+                player.mitoAbilityTriggered = true;
+                player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3));
+                player.speedMultiplier = 2;
+                
+                let alertMsg = "⚡ МИТО АКТИВИРОВАЛ УСКОРЕНИЕ И ХИЛ!";
+                if (data.lang === 'en') alertMsg = "⚡ MITO ACTIVATED SPEED UP AND HEAL!";
+                if (data.lang === 'de') alertMsg = "⚡ MITO HAT SPEED-UP UND HEILUNG AKTIVIERT!";
+                if (data.lang === 'uk') alertMsg = "⚡ МІТО АКТИВУВАВ ПРИСКОРЕННЯ ТА ХІЛ!";
+                alert(alertMsg);
+            }
+
+            // Способность Утока (игрок): спавн летающих какашек при <= 40 XP
+            if (data.selectedBrawler === 'utok' && player.hp <= 40 && !player.utokAbilityTriggered && player.hp > 0) {
+                player.utokAbilityTriggered = true;
+                for (let angle = 0; angle < 360; angle += 45) {
+                    let rad = angle * Math.PI / 180;
+                    let vx = Math.cos(rad);
+                    let vy = Math.sin(rad);
+                    spawnFlyingPoop(player.x, player.y, vx, vy, true);
+                }
+            }
+
+            if (data.selectedBrawler === 'shatko' && player.hp <= 300 && !player.shatkoAbilityTriggered && player.hp > 0) {
+                player.shatkoAbilityTriggered = true;
+                player.shatkoAbilityTimer = 10;
+                document.getElementById('shatko-overlay').style.display = 'block';
+                alert(data.lang === 'ru' ? "😏 ШАТКО СДЕЛАЛ ВСЮ ЗОНУ ЖЁЛТОЙ! Все боты замерли на 10 секунд!" : "😏 SHATKO MADE THE WHOLE ZONE YELLOW! All bots are frozen for 10 seconds!");
+            }
+
+            if(joyRight.active && time - joyRight.lastShoot > 500) {
+                joyRight.lastShoot = time;
+                shoot(player.x, player.y, joyRight.dx, joyRight.dy, false);
+            }
+
+            bots.forEach(bot => {
+                if(bot.hp <= 0) return;
+                
+                if (player.shatkoAbilityTimer > 0) {
+                    bot.frozen = 0.5;
+                }
+
+                // Способность Утока (бот): спавн летающих какашек при <= 40 XP
+                if (bot.skin === 'utok' && bot.hp <= 40 && !bot.utokAbilityTriggered && bot.hp > 0) {
+                    bot.utokAbilityTriggered = true;
+                    for (let angle = 0; angle < 360; angle += 45) {
+                        let rad = angle * Math.PI / 180;
+                        let vx = Math.cos(rad);
+                        let vy = Math.sin(rad);
+                        spawnFlyingPoop(bot.x, bot.y, vx, vy, false);
+                    }
+                }
+
+                let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
+                let playerVisible = !player.inBush || dist < 220; 
+                
+                bot.inBush = bushes.some(b => Math.hypot(bot.x - b.x, bot.y - b.y) < b.r);
+                bot.el.style.opacity = bot.inBush ? 0.45 : 1;
+
+                let targetX = bot.x;
+                let targetY = bot.y;
+                let shouldShoot = false;
+
+                if (bot.frozen > 0) {
+                    bot.frozen -= dt;
+                    updateEntity(bot);
+                    return;
+                }
+
+                if (bot.hp < bot.maxHp * 0.35) {
+                    let nb = getNearestBush(bot.x, bot.y);
+                    if (nb) { targetX = nb.x; targetY = nb.y; }
+                    if (playerVisible && dist < 400) shouldShoot = true; 
+                } else if (playerVisible && dist < 700) {
+                    targetX = player.x;
+                    targetY = player.y;
+                    shouldShoot = true;
+                    bot.searchBushTarget = null;
+                    
+                    if (dist < 450) {
+                        let perpX = -(player.y - bot.y) / dist;
+                        let perpY = (player.x - bot.x) / dist;
+                        let wave = Math.sin(time / 300) > 0 ? 1 : -1;
+                        targetX += perpX * 220 * wave;
+                        targetY += perpY * 220 * wave;
+                    }
+                } else {
+                    if (!bot.searchBushTarget || Math.hypot(bot.x - bot.searchBushTarget.x, bot.y - bot.searchBushTarget.y) < 50) {
+                        if (bushes.length > 0) {
+                            bot.searchBushTarget = bushes[Math.floor(Math.random() * bushes.length)];
+                        }
+                    }
+                    if (bot.searchBushTarget) {
+                        targetX = bot.searchBushTarget.x;
+                        targetY = bot.searchBushTarget.y;
+                    }
+                }
+
+                let dx = targetX - bot.x;
+                let dy = targetY - bot.y;
+                let dLen = Math.hypot(dx, dy);
+                if (dLen > 5) {
+                    let bSpeed = (bot.skin === 'kiko') ? 220 : 170; 
+                    bot.x += (dx / dLen) * bSpeed * dt;
+                    bot.y += (dy / dLen) * bSpeed * dt;
+                }
+                bot.x = Math.max(50, Math.min(1950, bot.x));
+                bot.y = Math.max(50, Math.min(1950, bot.y));
+
+                if (shouldShoot && time - bot.lastShootTime > bot.shootCooldown) {
+                    bot.lastShootTime = time;
+                    
+                    let leadFactor = 25; 
+                    let predX = player.x + (joyLeft.dx * leadFactor);
+                    let predY = player.y + (joyLeft.dy * leadFactor);
+                    
+                    let sDx = predX - bot.x;
+                    let sDy = predY - bot.y;
+                    let sLen = Math.hypot(sDx, sDy);
+                    if (sLen > 0) {
+                        shoot(bot.x, bot.y, sDx / sLen, sDy / sLen, true);
+                    }
+                }
+                
+                updateEntity(bot);
+            });
+
+            // Обновление летящих какашек (снарядов Утока)
+            for (let i = flyingPoops.length - 1; i >= 0; i--) {
+                let p = flyingPoops[i];
+                p.x += p.vx * 650 * dt;
+                p.y += p.vy * 650 * dt;
+                p.el.style.left = p.x + 'px';
+                p.el.style.top = p.y + 'px';
+                
+                let rotation = (time / 2) % 360;
+                p.el.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+                
+                // Пропажа за пределами арены
+                if (p.x < 0 || p.x > 2000 || p.y < 0 || p.y > 2000) {
+                    p.el.remove();
+                    flyingPoops.splice(i, 1);
+                    continue;
+                }
+                
+                if (p.shotByPlayer) {
+                    // Игрок-Уток попадает по боту
+                    let hit = false;
+                    for (let j = 0; j < bots.length; j++) {
+                        let bot = bots[j];
+                        if (bot.hp > 0 && Math.hypot(p.x - bot.x, p.y - bot.y) < 40) {
+                            bot.hp -= Math.floor(bot.maxHp * 0.5); // Теряет 50% XP
+                            hit = true;
+                            break;
+                        }
+                    }
+                    if (hit) {
+                        p.el.remove();
+                        flyingPoops.splice(i, 1);
+                        continue;
+                    }
+                } else {
+                    // Бот-Уток попадает по игроку
+                    if (Math.hypot(p.x - player.x, p.y - player.y) < 40) {
+                        if (player.immortalTimer <= 0) {
+                            let incomingDmg = Math.floor(player.maxHp * 0.5); // Теряет 50% XP
+                            if (data.shields > 0) incomingDmg = Math.floor(incomingDmg * 0.5);
+                            player.hp -= incomingDmg;
+                        }
+                        p.el.remove();
+                        flyingPoops.splice(i, 1);
+                        continue;
+                    }
+                }
+            }
+
+            for(let i = bullets.length-1; i>=0; i--) {
+                let b = bullets[i];
+                b.x += b.vx * 850 * dt;
+                b.y += b.vy * 850 * dt;
+                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+                
+                if(b.x<0 || b.x>2000 || b.y<0 || b.y>2000) { b.el.remove(); bullets.splice(i,1); continue; }
+                
+                if(b.isBot) {
+                    if(Math.hypot(b.x - player.x, b.y - player.y) < 35) {
+                        b.el.remove(); bullets.splice(i,1);
+                        if(player.immortalTimer > 0) continue; 
+                        
+                        let incomingDmg = 120; 
+                        if(data.shields > 0) {
+                            incomingDmg = Math.floor(incomingDmg * 0.5);
+                        }
+                        
+                        player.hp -= incomingDmg;
+                    }
+                } else {
+                    bots.forEach(bot => {
+                        if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < 35) {
+                            bot.hp -= player.dmg;
+                            if(data.selectedBrawler === 'ratok') bot.frozen = 2.5; 
+                            b.el.remove(); bullets.splice(i,1);
+                        }
+                    });
+                }
+            }
+
+            bots = bots.filter(bot => {
+                if(bot.hp <= 0) { bot.el.remove(); return false; }
+                return true;
+            });
+
+            updateEntity(player);
+
+            let cx = window.innerWidth/2 - player.x;
+            let cy = window.innerHeight/2 - player.y;
+            arena.style.transform = `translate(${cx}px, ${cy}px)`;
+
+            if(player.hp <= 0) {
+                let triggeredRage = false;
+                let triggeredRatok = false;
+
+                if(data.selectedBrawler === 'kiko') {
+                    let currentBush = bushes.find(b => Math.hypot(player.x - b.x, player.y - b.y) < b.r);
+                    if(currentBush) {
+                        let botsInSameBush = bots.filter(bot => bot.hp > 0 && Math.hypot(bot.x - currentBush.x, bot.y - currentBush.y) < currentBush.r);
+                        if(botsInSameBush.length >= 2) {
+                            triggeredRage = true;
+                            
+                            let faceSpan = player.el.querySelector('.emoji-txt');
+                            if(faceSpan) faceSpan.innerText = '👹';
+                            player.rageFaceTimer = 3; 
+                            
+                            botsInSameBush.forEach(bot => {
+                                bot.hp = 0;
+                                bot.el.remove();
+                            });
+                            bots = bots.filter(bot => bot.hp > 0);
+                            
+                            player.hp = 500;
+                            updateEntity(player);
+                            
+                            alert(data.lang === 'ru' ? "👹 КОКО ВПАЛ В ЯРОСТЬ! Лицо изменилось на демона 👹, и он уничтожил всех игроков в кустах!" : "👹 COCO WENT RAGE! Face changed to demon 👹, destroying all players in the bushes!");
+                        }
+                    }
+                }
+
+                if(!triggeredRage && data.selectedBrawler === 'ratok' && !player.ratokTriggered) {
+                    triggeredRatok = true;
+                    player.ratokTriggered = true;
+                    player.immortalTimer = 10;
+                    player.hp = player.maxHp;
+                    updateEntity(player);
+
+                    document.getElementById('ratok-overlay').style.display = 'block';
+                    let faceSpan = player.el.querySelector('.emoji-txt');
+                    if(faceSpan) faceSpan.innerText = '👼';
+
+                    alert(data.lang === 'ru' ? "👼 РАТОК ПРЕВРАТИЛСЯ В АНГЕЛА! Вы стали бессмертным на 10 секунд, а края экрана побелели!" : "👼 RATOK TURNED ANGEL! Immune for 10 seconds!");
+                }
+
+                if(!triggeredRage && !triggeredRatok) {
+                    if(data.shields > 0) {
+                        data.shields = 0; 
+                        player.hp = 400; 
+                        
+                        let bubble = player.el.querySelector('.shield-bubble');
+                        if(bubble) bubble.remove(); 
+                        
+                        saveData();
+                        alert(data.lang === 'ru' ? "💥 Ваш щит разбился в дребезги, но спас жизнь! Даровано финальные 400 XP для выживания!" : "💥 Shield broke but saved your life! +400 XP granted!");
+                        requestAnimationFrame(updateGame);
+                    } else {
+                        endGame(false); 
+                    }
+                } else {
+                    requestAnimationFrame(updateGame);
+                }
+            } else if(mode !== 'training' && bots.length === 0) {
+                endGame(true);
+            } else {
+                requestAnimationFrame(updateGame);
+            }
+        }
+
+        function updateEntity(ent) {
+            ent.el.style.left = ent.x + 'px';
+            ent.el.style.top = ent.y + 'px';
+            let hpFill = ent.el.querySelector('.hp-fill');
+            if(hpFill) hpFill.style.width = Math.max(0, (ent.hp/ent.maxHp)*100) + '%';
+        }
+
+        function shoot(x, y, dx, dy, isBot) {
+            let el = document.createElement('div');
+            el.className = 'bullet ' + (isBot ? 'bullet-bot' : '');
+            arena.appendChild(el);
+            bullets.push({x, y, vx: dx, vy: dy, isBot, el});
+        }
+
+        function endGame(win) {
+            isPlaying = false;
+            
+            if(data.shields > 0) {
+                data.shields--; 
+            }
+            
+            if(win) {
+                alert(data.lang === 'ru' ? "ПОБЕДА!\n+80 монет\n+5 гемов\n+15 попкорна 🍿" : "VICTORY!\n+80 coins\n+5 gems\n+15 popcorn 🍿");
+                data.coins += 80; data.gems += 5; data.popcorn += 15; data.level += 1;
+            } else {
+                alert(data.lang === 'ru' ? "ВАС ОДОЛЕЛИ\n+70 монет\n+5 попкорна 🍿" : "DEFEATED\n+70 coins\n+5 popcorn 🍿");
+                data.coins += 70; data.popcorn += 5;
+            }
+            saveData();
+            
+            document.getElementById('game').classList.remove('active-screen');
+            document.getElementById('loading').classList.add('active-screen');
+            document.getElementById('progress-bar').style.width = '0%';
+            
+            setTimeout(() => {
+                document.getElementById('progress-bar').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('loading').classList.remove('active-screen');
+                    document.getElementById('menu').classList.add('active-screen');
+                }, 400);
+            }, 400);
+        }
+
+        runLoading();
+    </script>
+</body>
+</html>
