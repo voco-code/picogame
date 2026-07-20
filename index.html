@@ -10,22 +10,13 @@
     <link rel="preload" as="image" href="https://i.ibb.co/7tbvh8Pm/IMG-5798.jpg">
     <title>Pico</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            border-radius: 0 !important;
-            font-family: Arial, sans-serif;
-            user-select: none;
-        }
+    
         body, html {
             position: fixed; /* Фиксируем экран от сдвигов при повороте устройства */
             width: 100%;
             height: 100%;
             overflow: hidden;
             background: #000;
-            touch-action: none; /* Запрещаем системные скроллы и зумы браузера */
-        }
         
         @keyframes rainbow {
             0% { background-position: 0% 50%; }
@@ -541,12 +532,7 @@
         if (data.nickClicks === undefined) data.nickClicks = 0;
         if (data.selectedBrawler === undefined) data.selectedBrawler = 'mito';
         if (data.unlocked === undefined) data.unlocked = ['mito', 'kiko'];
-        if (data.dailyDay === undefined) data.dailyDay = 1;
-        if (data.lastDailyTimestamp === undefined) data.lastDailyTimestamp = 0;
-        if (data.lastShopTimestamp === undefined) data.lastShopTimestamp = 0;
-        if (data.passLevels === undefined) data.passLevels = [];
-        if (data.passClaimed === undefined) data.passClaimed = [];
-        if (data.codesUsed === undefined) data.codesUsed = {};
+        if (data.dailyDay === undefined) data.dailyDay = 
         if (data.shields === undefined) data.shields = 0;
         if (data.nickChangesCount === undefined) data.nickChangesCount = 0;
         if (data.nickLockUntil === undefined) data.nickLockUntil = 0;
@@ -1082,13 +1068,7 @@
             makeElementDraggable(document.getElementById('cust-joy-right'));
             applyControlsPositions();
             applyDeviceSettings();
-        }
-
-        function updateSecretShop() {
-            let container = document.getElementById('secret-shop-container');
-            if (!container) return;
-            
-            let t = translations[data.lang || 'ru'];
+        
             
             let ratokBtnHtml = data.unlocked.includes('ratok') 
                 ? `<div class="btn-flat btn-gray" style="color:#fff;">${t.secretBought}</div>` 
