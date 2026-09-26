@@ -1,0 +1,15 @@
+{
+  "name": "Pico",
+  "short_name": "Pico",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/HL1pdB26/IMG-7920.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
